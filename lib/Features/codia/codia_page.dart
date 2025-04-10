@@ -692,25 +692,30 @@ class _CodiaPageState extends State<CodiaPage> {
       String label, String iconPath, bool isSelected, int index) {
     return GestureDetector(
       onTap: () {
+        if (label == 'Workout') {
+          Navigator.pushReplacement(
+            context,
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) =>
+                  ChooseWorkout(),
+              transitionDuration: Duration.zero,
+              reverseTransitionDuration: Duration.zero,
+            ),
+          );
+        }
         setState(() {
           _selectedIndex = index;
         });
-        if (label == 'Workout') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => ChooseWorkout()),
-          );
-        }
       },
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Image.asset(
             iconPath,
-            width: 27.6, // Increased by 15% from 24px
-            height: 27.6, // Increased by 15% from 24px
+            width: 27.6,
+            height: 27.6,
             color: isSelected ? Colors.black : Colors.grey,
-            fit: BoxFit.contain, // Ensure consistent sizing
+            fit: BoxFit.contain,
           ),
           const SizedBox(height: 4),
           Text(
