@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'Memories.dart';
+import '../../NewScreens/ChooseWorkout.dart';
 
 class CodiaPage extends StatefulWidget {
   CodiaPage({super.key});
@@ -911,6 +912,12 @@ class _CodiaPageState extends State<CodiaPage> {
         setState(() {
           _selectedIndex = index;
         });
+        if (label == 'Workout') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => ChooseWorkout()),
+          );
+        }
       },
       child: Column(
         mainAxisSize: MainAxisSize.min,
