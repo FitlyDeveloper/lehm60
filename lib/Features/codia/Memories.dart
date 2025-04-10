@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:grouped_list/grouped_list.dart';
+import 'package:intl/intl.dart';
 
 class MemoriesScreen extends StatefulWidget {
   const MemoriesScreen({super.key});
@@ -9,6 +10,39 @@ class MemoriesScreen extends StatefulWidget {
 }
 
 class _MemoriesScreenState extends State<MemoriesScreen> {
+  late DateTime _currentDate;
+  late DateTime _previousMonth;
+  late int _currentYear;
+  late int _currentMonth;
+  late int _previousMonthYear;
+  late int _previousMonthNum;
+  late int _today;
+  late int _daysInCurrentMonth;
+  late int _daysInPreviousMonth;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentDate = DateTime.now();
+    _currentYear = _currentDate.year;
+    _currentMonth = _currentDate.month;
+    _today = _currentDate.day;
+
+    // Calculate previous month
+    _previousMonth = DateTime(_currentDate.year, _currentDate.month - 1, 1);
+    _previousMonthYear = _previousMonth.year;
+    _previousMonthNum = _previousMonth.month;
+
+    // Calculate days in each month
+    _daysInCurrentMonth = DateTime(_currentYear, _currentMonth + 1, 0).day;
+    _daysInPreviousMonth =
+        DateTime(_previousMonthYear, _previousMonthNum + 1, 0).day;
+  }
+
+  String _getMonthName(int month) {
+    return DateFormat('MMMM yyyy').format(DateTime(_currentYear, month, 1));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -67,12 +101,12 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                   color: Color(0xFFBDBDBD),
                 ),
 
-                // January 2025 Calendar
+                // Current Month Calendar
                 Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 29, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 29)
+                      .copyWith(top: 20, bottom: 0),
                         child: Container(
-                    padding: EdgeInsets.all(20),
+                    padding: EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(20),
@@ -88,9 +122,9 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                 children: [
                         // Month header
                         Padding(
-                          padding: const EdgeInsets.only(bottom: 20),
+                          padding: const EdgeInsets.only(bottom: 12),
                           child: Text(
-                            'January 2025',
+                            _getMonthName(_currentMonth),
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w500,
@@ -113,22 +147,22 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                           ],
                         ),
 
-                        SizedBox(height: 15),
+                        SizedBox(height: 8),
 
                         // Calendar days
-                        _buildCalendarGrid(
-                            31, 15), // January has 31 days, highlight day 15
+                        _buildCalendarGrid(_daysInCurrentMonth,
+                            _today), // Current month with today highlighted
                       ],
                     ),
                   ),
                 ),
 
-                // December 2024 Calendar
+                // Previous Month Calendar
                 Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 29, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 29)
+                      .copyWith(top: 15, bottom: 6),
                         child: Container(
-                    padding: EdgeInsets.all(20),
+                    padding: EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(20),
@@ -144,9 +178,9 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                 children: [
                         // Month header
                         Padding(
-                          padding: const EdgeInsets.only(bottom: 20),
+                          padding: const EdgeInsets.only(bottom: 12),
                           child: Text(
-                            'December 2024',
+                            _getMonthName(_previousMonthNum),
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w500,
@@ -169,11 +203,11 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                           ],
                         ),
 
-                        SizedBox(height: 15),
+                        SizedBox(height: 8),
 
                         // Calendar days
-                        _buildCalendarGrid(
-                            31, null), // December has 31 days, no highlight
+                        _buildCalendarGrid(_daysInPreviousMonth,
+                            null), // Previous month, no highlight
                       ],
                     ),
                   ),
@@ -206,8 +240,8 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
       physics: NeverScrollableScrollPhysics(),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 7,
-        mainAxisSpacing: 10,
-        crossAxisSpacing: 10,
+        mainAxisSpacing: 8,
+        crossAxisSpacing: 8,
       ),
       itemCount: daysInMonth,
       itemBuilder: (context, index) {
@@ -221,10 +255,8 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.transparent,
-        border: isHighlighted
-            ? Border.all(color: Color(0xFFDADADA), width: 1.875)
-            : null,
-        shape: BoxShape.circle,
+        border: null,
+        shape: BoxShape.rectangle,
       ),
       child: Center(
                           child: Text(
