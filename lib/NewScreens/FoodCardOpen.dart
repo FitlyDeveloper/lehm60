@@ -18,107 +18,36 @@ class _FoodCardOpenState extends State<FoodCardOpen> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        _handleBack();
-        return false;
-      },
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        body: Stack(
-          children: [
-            SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Image with overlay controls
-                  Container(
-                    height: MediaQuery.of(context).size.width,
-                    child: Stack(
-                      children: [
-                        // Square gray image
-                        Container(
-                          width: MediaQuery.of(context).size.width,
-                          height: MediaQuery.of(context).size.width,
-                          color: Color(0xFFDADADA),
-                          child: Center(
-                            child: Image.asset(
-                              'assets/images/meal1.png',
-                              width: 48,
-                              height: 48,
-                            ),
-                          ),
-                        ),
-                        // Top bar overlay with share and more buttons
-                        Positioned(
-                          top: MediaQuery.of(context).padding.top + 16,
-                          right: 29,
-                          child: Row(
-                            children: [
-                              IconButton(
-                                icon: Image.asset(
-                                  'assets/images/share.png',
-                                  width: 24,
-                                  height: 24,
-                                ),
-                                onPressed: () {},
-                                splashColor: Colors.transparent,
-                                highlightColor: Colors.transparent,
-                                hoverColor: Colors.transparent,
-                              ),
-                              IconButton(
-                                icon: Image.asset(
-                                  'assets/images/more.png',
-                                  width: 24,
-                                  height: 24,
-                                ),
-                                onPressed: () {},
-                                splashColor: Colors.transparent,
-                                highlightColor: Colors.transparent,
-                                hoverColor: Colors.transparent,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+    final statusBarHeight = MediaQuery.of(context).viewPadding.top;
+
+    return Scaffold(
+      backgroundColor: Color(0xFFDADADA),
+      // Use a stack for better layout control
+      body: Stack(
+        children: [
+          // Scrollable content
+          SingleChildScrollView(
+            physics: ClampingScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Gray image header
+                Container(
+                  height: MediaQuery.of(context).size.width,
+                  color: Color(0xFFDADADA),
+                  child: Center(
+                    child: Image.asset(
+                      'assets/images/meal1.png',
+                      width: 48,
+                      height: 48,
                     ),
                   ),
-                ],
-              ),
-            ),
-
-            // Back button (bulletproof implementation)
-            Positioned(
-              top: MediaQuery.of(context).padding.top + 16,
-              left: 29,
-              child: GestureDetector(
-                behavior: HitTestBehavior.translucent,
-                onTap: () {
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (context) => CodiaPage()),
-                    (route) => false,
-                  );
-                },
-                child: Container(
-                  width: 40,
-                  height: 40,
-                  alignment: Alignment.center,
-                  child: Icon(Icons.arrow_back, color: Colors.black, size: 24),
                 ),
-              ),
-            ),
 
-            // Content with gradient background
-            SingleChildScrollView(
-              child: Column(
-                children: [
-                  // Spacer to push content down
-                  SizedBox(
-                      height: MediaQuery.of(context).size.width *
-                          0.8), // Changed from 0.7 to 0.8
-
-                  // White rounded container with gradient
-                  Container(
+                // White rounded container with gradient
+                Transform.translate(
+                  offset: Offset(0, -40), // Move up to create overlap
+                  child: Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.vertical(
                         top: Radius.circular(40),
@@ -547,63 +476,122 @@ class _FoodCardOpenState extends State<FoodCardOpen> {
                               ),
                             ),
 
-                            // Add extra padding at the bottom for the button
-                            SizedBox(
-                                height:
-                                    MediaQuery.of(context).size.height * 0.2),
+                            // Extra space at the bottom to account for the Save button
+                            SizedBox(height: 100),
                           ],
                         ),
                       ],
                     ),
                   ),
+                ),
+              ],
+            ),
+          ),
+
+          // Fixed top navigation bar
+          Positioned(
+            top: statusBarHeight,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 56,
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Back button
+                  GestureDetector(
+                    onTap: () => Navigator.pushReplacement(context,
+                        MaterialPageRoute(builder: (context) => CodiaPage())),
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      alignment: Alignment.center,
+                      child:
+                          Icon(Icons.arrow_back, color: Colors.black, size: 24),
+                    ),
+                  ),
+
+                  // Right side icons
+                  Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () {},
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          alignment: Alignment.center,
+                          child: Image.asset(
+                            'assets/images/share.png',
+                            width: 24,
+                            height: 24,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () {},
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          alignment: Alignment.center,
+                          child: Image.asset(
+                            'assets/images/more.png',
+                            width: 24,
+                            height: 24,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
+          ),
+        ],
+      ),
 
-            // White box at bottom
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              height: MediaQuery.of(context).size.height * 0.148887,
-              child: Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.zero,
-                ),
-              ),
-            ),
-
-            // Save button
-            Positioned(
-              left: 24,
-              right: 24,
-              bottom: MediaQuery.of(context).size.height * 0.06,
-              child: Container(
-                width: double.infinity,
-                height: MediaQuery.of(context).size.height * 0.0689,
-                decoration: BoxDecoration(
-                  color: Colors.black,
-                  borderRadius: BorderRadius.circular(28),
-                ),
-                child: TextButton(
-                  onPressed: () {},
-                  style: ButtonStyle(
-                    overlayColor: MaterialStateProperty.all(Colors.transparent),
-                  ),
-                  child: Text(
-                    'Save',
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w500,
-                      fontFamily: '.SF Pro Display',
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
+      // Fixed Save button at bottom
+      bottomNavigationBar: Container(
+        padding: EdgeInsets.only(
+          left: 24,
+          right: 24,
+          bottom: 24,
+          top: 10,
+        ),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: Offset(0, -5),
             ),
           ],
+        ),
+        child: Container(
+          width: double.infinity,
+          height: MediaQuery.of(context).size.height * 0.0689,
+          decoration: BoxDecoration(
+            color: Colors.black,
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: TextButton(
+            onPressed: () {},
+            style: ButtonStyle(
+              overlayColor: MaterialStateProperty.all(Colors.transparent),
+            ),
+            child: Text(
+              'Save',
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w500,
+                fontFamily: '.SF Pro Display',
+                color: Colors.white,
+              ),
+            ),
+          ),
         ),
       ),
     );
