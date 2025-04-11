@@ -31,10 +31,37 @@ class FoodCardOpen extends StatefulWidget {
   State<FoodCardOpen> createState() => _FoodCardOpenState();
 }
 
-class _FoodCardOpenState extends State<FoodCardOpen> {
+class _FoodCardOpenState extends State<FoodCardOpen>
+    with SingleTickerProviderStateMixin {
   bool _isLoading = false;
   bool _isLiked = false;
+  bool _isBookmarked = false; // Track bookmark state
   int _counter = 1; // Counter for +/- buttons
+  late AnimationController _bookmarkController;
+  late Animation<double> _bookmarkScaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _bookmarkController = AnimationController(
+      duration: Duration(milliseconds: 300),
+      vsync: this,
+    );
+
+    _bookmarkScaleAnimation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween<double>(begin: 1.0, end: 1.2), weight: 1),
+      TweenSequenceItem(tween: Tween<double>(begin: 1.2, end: 1.0), weight: 1),
+    ]).animate(CurvedAnimation(
+      parent: _bookmarkController,
+      curve: Curves.easeOut,
+    ));
+  }
+
+  @override
+  void dispose() {
+    _bookmarkController.dispose();
+    super.dispose();
+  }
 
   void _handleBack() {
     Navigator.of(context).pop();
@@ -55,6 +82,15 @@ class _FoodCardOpenState extends State<FoodCardOpen> {
       if (_counter > 1) {
         _counter--;
       }
+    });
+  }
+
+  // Method to toggle bookmark state with animation
+  void _toggleBookmark() {
+    setState(() {
+      _isBookmarked = !_isBookmarked;
+      _bookmarkController.reset();
+      _bookmarkController.forward();
     });
   }
 
@@ -186,12 +222,28 @@ class _FoodCardOpenState extends State<FoodCardOpen> {
                                 // Left side: Bookmark and time
                                 Row(
                                   children: [
-                                    // Bookmark button
-                                    Image.asset(
-                                      'assets/images/bookmark.png',
-                                      width: 24,
-                                      height: 24,
-                                      color: Colors.black,
+                                    // Bookmark button with animation
+                                    GestureDetector(
+                                      onTap: _toggleBookmark,
+                                      child: AnimatedBuilder(
+                                        animation: _bookmarkScaleAnimation,
+                                        builder: (context, child) {
+                                          return Transform.scale(
+                                            scale:
+                                                _bookmarkScaleAnimation.value,
+                                            child: Image.asset(
+                                              _isBookmarked
+                                                  ? 'assets/images/bookmarkfilled.png'
+                                                  : 'assets/images/bookmark.png',
+                                              width: 24,
+                                              height: 24,
+                                              color: _isBookmarked
+                                                  ? Color(0xFFFFC300)
+                                                  : Colors.black,
+                                            ),
+                                          );
+                                        },
+                                      ),
                                     ),
                                     SizedBox(width: 16),
                                     // Time
@@ -222,28 +274,27 @@ class _FoodCardOpenState extends State<FoodCardOpen> {
                                         decoration: BoxDecoration(
                                           shape: BoxShape.circle,
                                           color: Colors.white,
-                                          border: Border.all(
-                                              color: Colors.grey.shade300),
                                         ),
                                         child: Center(
                                           child: Image.asset(
                                             'assets/images/minus.png',
-                                            width: 16,
-                                            height: 16,
+                                            width: 24,
+                                            height: 24,
                                             color: Colors.black,
                                           ),
                                         ),
                                       ),
                                     ),
 
-                                    // Counter
+                                    // Counter with smaller width
                                     Container(
-                                      width: 40,
+                                      width:
+                                          24, // Reduced from 40 to bring icons closer
                                       child: Center(
                                         child: Text(
                                           '$_counter',
                                           style: TextStyle(
-                                            fontSize: 24,
+                                            fontSize: 18,
                                             fontWeight: FontWeight.bold,
                                           ),
                                         ),
@@ -259,14 +310,12 @@ class _FoodCardOpenState extends State<FoodCardOpen> {
                                         decoration: BoxDecoration(
                                           shape: BoxShape.circle,
                                           color: Colors.white,
-                                          border: Border.all(
-                                              color: Colors.grey.shade300),
                                         ),
                                         child: Center(
                                           child: Image.asset(
                                             'assets/images/plus.png',
-                                            width: 16,
-                                            height: 16,
+                                            width: 24,
+                                            height: 24,
                                             color: Colors.black,
                                           ),
                                         ),
@@ -278,21 +327,14 @@ class _FoodCardOpenState extends State<FoodCardOpen> {
                             ),
                           ),
 
-                          // Title and description
+                          // Title and description with adjusted padding
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Divider line
-                              Container(
-                                margin: EdgeInsets.only(top: 16),
-                                height: 0.5,
-                                color: Color(0xFFE0E0E0),
-                              ),
-
-                              // Title and subtitle area
+                              // Title and subtitle area with adjusted vertical spacing
                               Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 29, vertical: 20),
+                                padding: const EdgeInsets.only(
+                                    left: 29, right: 29, top: 18, bottom: 20),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -308,7 +350,7 @@ class _FoodCardOpenState extends State<FoodCardOpen> {
                                     Text(
                                       'Rusty Pelican is so good',
                                       style: TextStyle(
-                                        fontSize: 16,
+                                        fontSize: 18,
                                         color: Colors.grey[600],
                                       ),
                                     ),
@@ -316,20 +358,25 @@ class _FoodCardOpenState extends State<FoodCardOpen> {
                                 ),
                               ),
 
-                              // Second divider
-                              Container(
-                                height: 0.5,
-                                color: Color(0xFFE0E0E0),
+                              // Divider with correct color and margins
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 29),
+                                child: Container(
+                                  height: 0.5,
+                                  color: Color(0xFFBDBDBD),
+                                ),
                               ),
 
                               // Social sharing buttons
                               Padding(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 29, vertical: 16),
+                                    horizontal: 48, vertical: 16),
                                 child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
-                                    // Like button
+                                    // Like button area (left section)
                                     Row(
                                       children: [
                                         Image.asset(
@@ -349,9 +396,7 @@ class _FoodCardOpenState extends State<FoodCardOpen> {
                                       ],
                                     ),
 
-                                    SizedBox(width: 32),
-
-                                    // Comment button
+                                    // Comment button (center section)
                                     Row(
                                       children: [
                                         Image.asset(
@@ -371,9 +416,7 @@ class _FoodCardOpenState extends State<FoodCardOpen> {
                                       ],
                                     ),
 
-                                    SizedBox(width: 32),
-
-                                    // Share button
+                                    // Share button (right section)
                                     Image.asset(
                                       'assets/images/share.png',
                                       width: 24,
@@ -384,10 +427,14 @@ class _FoodCardOpenState extends State<FoodCardOpen> {
                                 ),
                               ),
 
-                              // Third divider
-                              Container(
-                                height: 0.5,
-                                color: Color(0xFFE0E0E0),
+                              // Divider with correct color and margins
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 29),
+                                child: Container(
+                                  height: 0.5,
+                                  color: Color(0xFFBDBDBD),
+                                ),
                               ),
                             ],
                           ),
@@ -396,7 +443,7 @@ class _FoodCardOpenState extends State<FoodCardOpen> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Add more vertical spacing
+                              // Add 20px gap between divider and calories
                               SizedBox(height: 20),
 
                               // Calories and macros card
