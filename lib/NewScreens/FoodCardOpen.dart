@@ -34,9 +34,28 @@ class FoodCardOpen extends StatefulWidget {
 class _FoodCardOpenState extends State<FoodCardOpen> {
   bool _isLoading = false;
   bool _isLiked = false;
+  int _counter = 1; // Counter for +/- buttons
 
   void _handleBack() {
     Navigator.of(context).pop();
+  }
+
+  // Method to increment counter with maximum limit
+  void _incrementCounter() {
+    setState(() {
+      if (_counter < 10) {
+        _counter++;
+      }
+    });
+  }
+
+  // Method to decrement counter with minimum limit
+  void _decrementCounter() {
+    setState(() {
+      if (_counter > 1) {
+        _counter--;
+      }
+    });
   }
 
   @override
@@ -162,76 +181,96 @@ class _FoodCardOpenState extends State<FoodCardOpen> {
                           Padding(
                             padding: const EdgeInsets.fromLTRB(29, 20, 29, 0),
                             child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Container(
-                                  padding: EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Color(0xFFF2F2F2),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    '12:07',
-                                    style: TextStyle(fontSize: 12),
-                                  ),
-                                ),
-                                Spacer(),
+                                // Left side: Bookmark and time
                                 Row(
                                   children: [
-                                    IconButton(
-                                      icon: AnimatedSwitcher(
-                                        duration: Duration(milliseconds: 300),
-                                        transitionBuilder: (Widget child,
-                                            Animation<double> animation) {
-                                          return ScaleTransition(
-                                              scale: animation, child: child);
-                                        },
-                                        child: _isLiked
-                                            ? Image.asset(
-                                                'assets/images/likefilled.png',
-                                                width: 24,
-                                                height: 24,
-                                                key: ValueKey('liked'),
-                                              )
-                                            : Image.asset(
-                                                'assets/images/like.png',
-                                                width: 24,
-                                                height: 24,
-                                                key: ValueKey('unliked'),
-                                              ),
-                                      ),
-                                      onPressed: () {
-                                        setState(() {
-                                          _isLiked = !_isLiked;
-                                        });
-                                      },
-                                      splashColor: Colors.transparent,
-                                      highlightColor: Colors.transparent,
-                                      hoverColor: Colors.transparent,
+                                    // Bookmark button
+                                    Image.asset(
+                                      'assets/images/bookmark.png',
+                                      width: 24,
+                                      height: 24,
+                                      color: Colors.black,
                                     ),
-                                    Text('2', style: TextStyle(fontSize: 16)),
-                                    IconButton(
-                                      icon: Image.asset(
-                                        'assets/images/comment.png',
-                                        width: 24,
-                                        height: 24,
+                                    SizedBox(width: 16),
+                                    // Time
+                                    Container(
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Color(0xFFF2F2F2),
+                                        borderRadius: BorderRadius.circular(12),
                                       ),
-                                      onPressed: () {},
-                                      splashColor: Colors.transparent,
-                                      highlightColor: Colors.transparent,
-                                      hoverColor: Colors.transparent,
+                                      child: Text(
+                                        '12:07',
+                                        style: TextStyle(fontSize: 12),
+                                      ),
                                     ),
-                                    Text('2', style: TextStyle(fontSize: 16)),
-                                    IconButton(
-                                      icon: Image.asset(
-                                        'assets/images/share.png',
-                                        width: 24,
-                                        height: 24,
+                                  ],
+                                ),
+
+                                // Right side: Counter with minus and plus buttons
+                                Row(
+                                  children: [
+                                    // Minus button
+                                    GestureDetector(
+                                      onTap: _decrementCounter,
+                                      child: Container(
+                                        width: 40,
+                                        height: 40,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: Colors.white,
+                                          border: Border.all(
+                                              color: Colors.grey.shade300),
+                                        ),
+                                        child: Center(
+                                          child: Image.asset(
+                                            'assets/images/minus.png',
+                                            width: 16,
+                                            height: 16,
+                                            color: Colors.black,
+                                          ),
+                                        ),
                                       ),
-                                      onPressed: () {},
-                                      splashColor: Colors.transparent,
-                                      highlightColor: Colors.transparent,
-                                      hoverColor: Colors.transparent,
+                                    ),
+
+                                    // Counter
+                                    Container(
+                                      width: 40,
+                                      child: Center(
+                                        child: Text(
+                                          '$_counter',
+                                          style: TextStyle(
+                                            fontSize: 24,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+
+                                    // Plus button
+                                    GestureDetector(
+                                      onTap: _incrementCounter,
+                                      child: Container(
+                                        width: 40,
+                                        height: 40,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: Colors.white,
+                                          border: Border.all(
+                                              color: Colors.grey.shade300),
+                                        ),
+                                        child: Center(
+                                          child: Image.asset(
+                                            'assets/images/plus.png',
+                                            width: 16,
+                                            height: 16,
+                                            color: Colors.black,
+                                          ),
+                                        ),
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -239,17 +278,21 @@ class _FoodCardOpenState extends State<FoodCardOpen> {
                             ),
                           ),
 
-                          // Rest of the content
+                          // Title and description
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Add more vertical spacing
-                              SizedBox(height: 20),
+                              // Divider line
+                              Container(
+                                margin: EdgeInsets.only(top: 16),
+                                height: 0.5,
+                                color: Color(0xFFE0E0E0),
+                              ),
 
-                              // Title and description
+                              // Title and subtitle area
                               Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 29),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 29, vertical: 20),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -273,6 +316,86 @@ class _FoodCardOpenState extends State<FoodCardOpen> {
                                 ),
                               ),
 
+                              // Second divider
+                              Container(
+                                height: 0.5,
+                                color: Color(0xFFE0E0E0),
+                              ),
+
+                              // Social sharing buttons
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 29, vertical: 16),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  children: [
+                                    // Like button
+                                    Row(
+                                      children: [
+                                        Image.asset(
+                                          'assets/images/like.png',
+                                          width: 24,
+                                          height: 24,
+                                          color: Colors.black,
+                                        ),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          '2',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+
+                                    SizedBox(width: 32),
+
+                                    // Comment button
+                                    Row(
+                                      children: [
+                                        Image.asset(
+                                          'assets/images/comment.png',
+                                          width: 24,
+                                          height: 24,
+                                          color: Colors.black,
+                                        ),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          '2',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+
+                                    SizedBox(width: 32),
+
+                                    // Share button
+                                    Image.asset(
+                                      'assets/images/share.png',
+                                      width: 24,
+                                      height: 24,
+                                      color: Colors.black,
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              // Third divider
+                              Container(
+                                height: 0.5,
+                                color: Color(0xFFE0E0E0),
+                              ),
+                            ],
+                          ),
+
+                          // Rest of the content
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
                               // Add more vertical spacing
                               SizedBox(height: 20),
 
