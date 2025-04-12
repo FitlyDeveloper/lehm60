@@ -30,6 +30,28 @@ class _CodiaPageState extends State<CodiaPage> {
   void initState() {
     super.initState();
     _loadUserData(); // Load the user's actual data from storage
+    // Use this for testing - comment out for normal operation
+    // _setTestData();
+  }
+
+  // Test function to manually set data and verify calculations
+  void _setTestData() {
+    setState(() {
+      userGender = 'Female';
+      userWeightKg = 65.0;
+      userHeightCm = 170.0;
+      userAge = 25;
+      userGoal = 'lose';
+      goalSpeedKgPerWeek = 0.5;
+    });
+
+    // Output test calculation results
+    double tdee = _getMaintenanceCalories();
+    double target = _calculateTargetCalories();
+    print('TEST DATA CALCULATION:');
+    print('Test TDEE (maintenance): ${tdee.toStringAsFixed(0)}');
+    print('Test target calories: ${target.toStringAsFixed(0)}');
+    print('Test deficit/surplus: ${_getDeficitSurplusText()}');
   }
 
   // Load user data from SharedPreferences (or your storage mechanism)
@@ -37,8 +59,29 @@ class _CodiaPageState extends State<CodiaPage> {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
 
-      // Load gender from gender_screen.dart answer
+      // DEBUG: Print all available keys in SharedPreferences
+      print('All available SharedPreferences keys:');
+      print(prefs.getKeys());
+
+      // Check if each key exists before trying to read it
+      final hasGender = prefs.containsKey('user_gender');
+      final hasWeight = prefs.containsKey('user_weight_kg');
+      final hasHeight = prefs.containsKey('user_height_cm');
+      final hasAge = prefs.containsKey('user_age');
+      final hasGoal = prefs.containsKey('user_goal');
+      final hasSpeed = prefs.containsKey('goal_speed_kg_per_week');
+
+      print('SharedPreferences key check:');
+      print('user_gender exists: $hasGender');
+      print('user_weight_kg exists: $hasWeight');
+      print('user_height_cm exists: $hasHeight');
+      print('user_age exists: $hasAge');
+      print('user_goal exists: $hasGoal');
+      print('goal_speed_kg_per_week exists: $hasSpeed');
+
+      // Load values with setState to trigger UI update
       setState(() {
+        // Load gender from gender_screen.dart answer
         userGender = prefs.getString('user_gender') ?? 'Female';
 
         // Load weight and height from weight_height_screen.dart answers
@@ -57,14 +100,27 @@ class _CodiaPageState extends State<CodiaPage> {
 
       // Debug output to verify data loading
       print('Loaded user data:');
-      print('Gender: $userGender');
-      print('Weight: $userWeightKg kg');
-      print('Height: $userHeightCm cm');
-      print('Age: $userAge years');
-      print('Goal: $userGoal');
-      print('Speed: $goalSpeedKgPerWeek kg/week');
+      print('Gender: $userGender (${hasGender ? "from prefs" : "default"})');
       print(
-          'Calculated calories: ${_calculateTargetCalories().toStringAsFixed(0)}');
+          'Weight: $userWeightKg kg (${hasWeight ? "from prefs" : "default"})');
+      print(
+          'Height: $userHeightCm cm (${hasHeight ? "from prefs" : "default"})');
+      print('Age: $userAge years (${hasAge ? "from prefs" : "default"})');
+      print('Goal: $userGoal (${hasGoal ? "from prefs" : "default"})');
+      print(
+          'Speed: $goalSpeedKgPerWeek kg/week (${hasSpeed ? "from prefs" : "default"})');
+
+      // Calculate and show values after loading
+      double tdee = _getMaintenanceCalories();
+      double target = _calculateTargetCalories();
+      print('Calculated TDEE (maintenance): ${tdee.toStringAsFixed(0)}');
+      print('Calculated target calories: ${target.toStringAsFixed(0)}');
+      print('Deficit/surplus: ${_getDeficitSurplusText()}');
+
+      // Force a rebuild to update the UI with new values
+      if (mounted) {
+        setState(() {});
+      }
     } catch (e) {
       print('Error loading user data: $e');
       // Continue with default values if loading fails

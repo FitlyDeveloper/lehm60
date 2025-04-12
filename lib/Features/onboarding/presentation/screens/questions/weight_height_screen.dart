@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fitness_app/Features/onboarding/presentation/screens/questions/weight_goal_screen.dart';
 import 'package:flutter/rendering.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class WeightHeightScreen extends StatefulWidget {
   const WeightHeightScreen({super.key});
@@ -27,6 +28,49 @@ class _WeightHeightScreenState extends State<WeightHeightScreen> {
   List<int> inchesOptions = List.generate(12, (index) => index); // 0-11 inches
 
   double get progress => currentStep / totalSteps;
+
+  // Calculate height in cm
+  int _getHeightInCm() {
+    if (isImperial) {
+      // Convert feet & inches to cm
+      return ((selectedFeet * 12 + selectedInches) * 2.54).round();
+    } else {
+      // If using metric, selectedFeet would actually be height in cm
+      return selectedFeet;
+    }
+  }
+
+  // Save weight and height to SharedPreferences
+  Future<void> _saveWeightAndHeight() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // Save weight
+      double weightInKg = isImperial
+          ? selectedWeight * 0.453592 // Convert lbs to kg
+          : selectedWeight.toDouble(); // Already in kg
+
+      await prefs.setDouble('user_weight_kg', weightInKg);
+
+      // Save height
+      int heightInCm = _getHeightInCm();
+      await prefs.setInt('user_height_cm', heightInCm);
+
+      // Verify data was saved
+      final savedWeight = prefs.getDouble('user_weight_kg');
+      final savedHeight = prefs.getInt('user_height_cm');
+
+      print('Data saved to SharedPreferences:');
+      print('Key: user_weight_kg, Value: $savedWeight');
+      print('Key: user_height_cm, Value: $savedHeight');
+
+      // Print all keys for debugging
+      print('All SharedPreferences keys after saving:');
+      print(prefs.getKeys());
+    } catch (e) {
+      print('Error saving weight/height: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -446,20 +490,23 @@ class _WeightHeightScreenState extends State<WeightHeightScreen> {
             ),
           ),
 
-          // Next button
+          // Continue button
           Positioned(
             left: 24,
             right: 24,
-            bottom: MediaQuery.of(context).size.height * 0.06,
+            bottom: MediaQuery.of(context).size.height * 0.05,
             child: Container(
               width: double.infinity,
-              height: MediaQuery.of(context).size.height * 0.0689,
+              height: MediaQuery.of(context).size.height * 0.064,
               decoration: BoxDecoration(
                 color: Colors.black,
-                borderRadius: BorderRadius.circular(28),
+                borderRadius: BorderRadius.circular(24),
               ),
               child: TextButton(
-                onPressed: () {
+                onPressed: () async {
+                  // Save weight and height before navigation
+                  await _saveWeightAndHeight();
+
                   Navigator.push(
                     context,
                     MaterialPageRoute(
