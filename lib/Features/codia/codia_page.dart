@@ -30,8 +30,8 @@ class _CodiaPageState extends State<CodiaPage> {
   void initState() {
     super.initState();
     _loadUserData(); // Load the user's actual data from storage
-    // Use this for testing - comment out for normal operation
-    // _setTestData();
+    // Use this for testing - uncommented for immediate testing
+    _setTestData();
   }
 
   // Test function to manually set data and verify calculations
@@ -45,13 +45,18 @@ class _CodiaPageState extends State<CodiaPage> {
       goalSpeedKgPerWeek = 0.5;
     });
 
-    // Output test calculation results
+    // Calculate values
     double tdee = _getMaintenanceCalories();
     double target = _calculateTargetCalories();
+
+    // Output test calculation results
     print('TEST DATA CALCULATION:');
     print('Test TDEE (maintenance): ${tdee.toStringAsFixed(0)}');
     print('Test target calories: ${target.toStringAsFixed(0)}');
     print('Test deficit/surplus: ${_getDeficitSurplusText()}');
+
+    // Force UI update
+    setState(() {});
   }
 
   // Load user data from SharedPreferences (or your storage mechanism)
@@ -909,8 +914,17 @@ class _CodiaPageState extends State<CodiaPage> {
   }
 
   Widget _buildCalorieCard() {
-    // Calculate exact target calories
-    double targetCalories = _calculateTargetCalories();
+    // Recalculate values each time this widget is built
+    final double tdee = _getMaintenanceCalories();
+    final double targetCalories = _calculateTargetCalories();
+    final String deficitSurplus = _getDeficitSurplusText();
+
+    print('BUILDING CALORIE CARD:');
+    print('Current TDEE: ${tdee.toStringAsFixed(0)}');
+    print('Current target: ${targetCalories.toStringAsFixed(0)}');
+    print('Current deficit/surplus: $deficitSurplus');
+    print(
+        'Based on: Gender=$userGender, Weight=${userWeightKg}kg, Height=${userHeightCm}cm, Goal=$userGoal, Speed=${goalSpeedKgPerWeek}kg/week');
 
     return Container(
       height: 220,
@@ -937,7 +951,7 @@ class _CodiaPageState extends State<CodiaPage> {
               Column(
                 children: [
                   Text(
-                    _getDeficitSurplusText(),
+                    deficitSurplus,
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
