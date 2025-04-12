@@ -124,12 +124,17 @@ class _CodiaPageState extends State<CodiaPage> {
   String _getDeficitSurplusText() {
     double targetCalories = _calculateTargetCalories();
     double maintenanceCalories = _getMaintenanceCalories();
-    double difference = targetCalories - maintenanceCalories;
 
-    // Format with appropriate sign
-    return difference >= 0
-        ? '+${difference.toStringAsFixed(0)}'
-        : '${difference.toStringAsFixed(0)}';
+    // For a deficit (when losing weight), show the TDEE value with a minus sign
+    // For surplus (when gaining weight), show the TDEE value with a plus sign
+    if (userGoal == 'lose') {
+      return '-${maintenanceCalories.toStringAsFixed(0)}';
+    } else if (userGoal == 'gain') {
+      return '+${maintenanceCalories.toStringAsFixed(0)}';
+    } else {
+      // For maintenance, show 0
+      return '0';
+    }
   }
 
   @override
