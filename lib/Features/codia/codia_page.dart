@@ -30,8 +30,8 @@ class _CodiaPageState extends State<CodiaPage> {
   void initState() {
     super.initState();
     _loadUserData(); // Load the user's actual data from storage
-    // Use this for testing - uncommented for immediate testing
-    _setTestData();
+    // IMPORTANT: Comment out test data to use real onboarding answers
+    // _setTestData();
   }
 
   // Test function to manually set data and verify calculations
