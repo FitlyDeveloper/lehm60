@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fitness_app/Features/onboarding/presentation/screens/next_intro_screen.dart';
 import 'package:fitness_app/Features/onboarding/presentation/screens/signin.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class GenderScreen extends StatefulWidget {
   const GenderScreen({super.key});
@@ -15,6 +16,29 @@ class _GenderScreenState extends State<GenderScreen> {
   String? selectedGender;
 
   double get progress => currentStep / totalSteps;
+
+  // Save selected gender to SharedPreferences
+  Future<void> _saveGender() async {
+    if (selectedGender != null) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+
+        // Save data and verify
+        await prefs.setString('user_gender', selectedGender!);
+
+        // Verify it was saved correctly
+        final savedGender = prefs.getString('user_gender');
+        print('Gender saved to SharedPreferences:');
+        print('Key: user_gender, Value: $savedGender');
+
+        // Print all keys for debugging
+        print('All SharedPreferences keys after saving:');
+        print(prefs.getKeys());
+      } catch (e) {
+        print('Error saving gender: $e');
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -127,45 +151,49 @@ class _GenderScreenState extends State<GenderScreen> {
             left: 0,
             right: 0,
             bottom: 0,
-            height: MediaQuery.of(context).size.height * 0.148887,
+            height: MediaQuery.of(context).size.height * 0.127,
             child: Container(
               decoration: const BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.zero,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(24),
+                  topRight: Radius.circular(24),
+                ),
               ),
             ),
           ),
 
-          // Next button
+          // Continue button
           Positioned(
             left: 24,
             right: 24,
-            bottom: MediaQuery.of(context).size.height * 0.06,
+            bottom: MediaQuery.of(context).size.height * 0.05,
             child: Container(
               width: double.infinity,
-              height: MediaQuery.of(context).size.height * 0.0689,
+              height: MediaQuery.of(context).size.height * 0.064,
               decoration: BoxDecoration(
                 color: selectedGender != null ? Colors.black : Colors.grey[300],
-                borderRadius: BorderRadius.circular(28),
+                borderRadius: BorderRadius.circular(24),
               ),
               child: TextButton(
                 onPressed: selectedGender != null
-                    ? () {
-                        Navigator.push(
-                          context,
+                    ? () async {
+                        // Save gender before navigation
+                        await _saveGender();
+                        Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (context) => const NextIntroScreen(),
                           ),
                         );
                       }
                     : null,
-                child: Text(
+                child: const Text(
                   'Continue',
                   style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w500,
                     fontFamily: '.SF Pro Display',
-                    color: selectedGender != null ? Colors.white : Colors.black,
+                    color: Colors.white,
                   ),
                 ),
               ),

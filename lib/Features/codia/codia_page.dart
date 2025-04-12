@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'Memories.dart';
 import '../../NewScreens/ChooseWorkout.dart';
 import 'flip_card.dart';
@@ -16,6 +17,196 @@ class CodiaPage extends StatefulWidget {
 class _CodiaPageState extends State<CodiaPage> {
   int _selectedIndex = 0; // Track selected nav item
   bool _showFrontCard = true; // Track which card is showing
+
+  // User data variables - will be populated from saved answers
+  String userGender = 'Female'; // Default values, will be overridden
+  double userWeightKg = 70.0;
+  double userHeightCm = 165.0;
+  int userAge = 30;
+  String userGoal = 'lose';
+  double goalSpeedKgPerWeek = 0.5;
+  double dailyCalorieAdjustment = 0.0; // Add this line to track the adjustment
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData(); // Load the user's actual data from storage
+  }
+
+  // For testing calculations with manual data
+  void _setTestUserData(String testCase) {
+    if (testCase == 'male_lose') {
+      setState(() {
+        userGender = 'Male';
+        userWeightKg = 80.0;
+        userHeightCm = 180.0;
+        userAge = 35;
+        userGoal = 'lose';
+        goalSpeedKgPerWeek = 0.7;
+      });
+    } else if (testCase == 'female_gain') {
+      setState(() {
+        userGender = 'Female';
+        userWeightKg = 60.0;
+        userHeightCm = 165.0;
+        userAge = 28;
+        userGoal = 'gain';
+        goalSpeedKgPerWeek = 0.3;
+      });
+    } else if (testCase == 'custom') {
+      // Try to match what might be causing the fixed value of 1644/1684
+      setState(() {
+        userGender =
+            'Female'; // Try Female since BMR equation has -161 constant
+        userWeightKg = 65.0; // Adjusted to potentially result in ~1684 calories
+        userHeightCm = 170.0;
+        userAge = 25;
+        userGoal = 'lose';
+        goalSpeedKgPerWeek = 0.5; // 0.5 kg per week is standard
+      });
+    }
+
+    print('Set test data to $testCase:');
+    print('Gender: $userGender');
+    print('Weight: $userWeightKg kg');
+    print('Height: $userHeightCm cm');
+    print('Age: $userAge');
+    print('Goal: $userGoal');
+    print('Goal Speed: $goalSpeedKgPerWeek kg/week');
+
+    double calories = _calculateTargetCalories();
+    print('Calculated calories: $calories');
+  }
+
+  // Load user data from SharedPreferences (or your storage mechanism)
+  Future<void> _loadUserData() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+
+      // Log all keys for debugging
+      print('All SharedPreferences keys: ${prefs.getKeys().toList()}');
+
+      // Check if we have any user data at all
+      bool hasUserData = prefs.containsKey('user_gender') ||
+          prefs.containsKey('user_weight_kg') ||
+          prefs.containsKey('user_goal');
+
+      if (!hasUserData) {
+        print(
+            'WARNING: No user data found in SharedPreferences. Using test data instead.');
+        _setTestUserData('custom'); // Use custom test case to check calculation
+        return;
+      }
+
+      // Load data using the exact keys from the onboarding screens
+      setState(() {
+        // From gender_screen.dart
+        userGender = prefs.getString('user_gender') ?? 'Female';
+
+        // From weight_height_screen.dart
+        userWeightKg = prefs.getDouble('user_weight_kg') ?? 70.0;
+        userHeightCm = prefs.getDouble('user_height_cm') ?? 165.0;
+
+        // From speed_screen.dart
+        userAge = prefs.getInt('user_age') ?? 30;
+
+        // From weight_goal_screen.dart
+        userGoal = prefs.getString('user_goal') ?? 'lose';
+
+        // From speed_screen.dart
+        goalSpeedKgPerWeek = prefs.getDouble('goal_speed_kg_per_week') ?? 0.5;
+      });
+
+      // Print loaded data for debugging
+      print('Loaded User Data:');
+      print('Gender: $userGender');
+      print('Weight: $userWeightKg kg');
+      print('Height: $userHeightCm cm');
+      print('Age: $userAge');
+      print('Goal: $userGoal');
+      print('Goal Speed: $goalSpeedKgPerWeek kg/week');
+
+      // Calculate and print calories for debugging
+      double calories = _calculateTargetCalories();
+      print('Calculated calories from loaded data: $calories');
+
+      // Force rebuild to update displayed calories with new data
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (e) {
+      print('Error loading user data: $e');
+      // Fall back to test data on error
+      print('Using test data due to error');
+      _setTestUserData('custom');
+    }
+  }
+
+  // Calculate target calories based on user data
+  double _calculateTargetCalories() {
+    // Print input values
+    print('Calculating for:');
+    print('Gender: $userGender');
+    print('Weight: $userWeightKg kg');
+    print('Height: $userHeightCm cm');
+    print('Age: $userAge');
+    print('Goal: $userGoal');
+    print('Goal Speed: $goalSpeedKgPerWeek kg/week');
+
+    // Calculate BMR (Mifflin-St Jeor Formula)
+    double bmr;
+    if (userGender == 'Male') {
+      bmr = (10 * userWeightKg) + (6.25 * userHeightCm) - (5 * userAge) + 5;
+    } else {
+      // Female or Other
+      bmr = (10 * userWeightKg) + (6.25 * userHeightCm) - (5 * userAge) - 161;
+    }
+
+    // Calculate TDEE with activity level
+    // We'll use different multipliers based on activity level
+    // 1.2: Sedentary (little or no exercise)
+    // 1.375: Lightly active (light exercise/sports 1-3 days/week)
+    // 1.55: Moderately active (moderate exercise/sports 3-5 days/week)
+    // 1.725: Very active (hard exercise/sports 6-7 days a week)
+    // 1.9: Extra active (very hard exercise, physical job or training twice a day)
+    double activityMultiplier = 1.2; // Assuming sedentary as default
+    double tdee = bmr * activityMultiplier;
+
+    // Calculate Daily Calorie Adjustment based on Goal Speed
+    double weeklyCalorieAdjustment =
+        goalSpeedKgPerWeek * 7700; // 7700 kcal ≈ 1kg
+    dailyCalorieAdjustment = weeklyCalorieAdjustment / 7;
+
+    // Calculate Final Target Calories based on Goal
+    double targetCalories;
+    if (userGoal == 'lose') {
+      targetCalories = tdee - dailyCalorieAdjustment;
+    } else if (userGoal == 'gain') {
+      targetCalories = tdee + dailyCalorieAdjustment;
+    } else {
+      // maintain
+      targetCalories = tdee;
+    }
+
+    // Print calculation steps for debugging
+    print('Calculation Steps:');
+    print('BMR: $bmr');
+    print('Activity Multiplier: $activityMultiplier');
+    print('TDEE (BMR * Activity): $tdee');
+    print('Weekly Calorie Adjustment: $weeklyCalorieAdjustment');
+    print('Daily Calorie Adjustment: $dailyCalorieAdjustment');
+    print('Target Calories: $targetCalories');
+
+    // Set a minimum healthy calorie limit
+    double minimumCalories = userGender == 'Male' ? 1500 : 1200;
+    if (targetCalories < minimumCalories && userGoal == 'lose') {
+      print(
+          'Warning: Calculated target below minimum. Setting to $minimumCalories calories');
+      targetCalories = minimumCalories;
+    }
+
+    return targetCalories;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -738,6 +929,9 @@ class _CodiaPageState extends State<CodiaPage> {
   }
 
   Widget _buildCalorieCard() {
+    // Calculate exact target calories
+    double targetCalories = _calculateTargetCalories();
+
     return Container(
       height: 220,
       padding: EdgeInsets.fromLTRB(20, 15, 20, 15), // Reduced vertical padding
@@ -763,7 +957,7 @@ class _CodiaPageState extends State<CodiaPage> {
               Column(
                 children: [
                   Text(
-                    '-700',
+                    '-${userGoal == 'lose' ? dailyCalorieAdjustment.round() : 0}',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -802,12 +996,13 @@ class _CodiaPageState extends State<CodiaPage> {
                       ),
                     ),
 
-                    // Remaining calories text
+                    // Remaining calories text - UPDATED to show exact calculation
                     Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          '1200',
+                          targetCalories.toStringAsFixed(
+                              0), // Display exact value without decimal points
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -834,7 +1029,7 @@ class _CodiaPageState extends State<CodiaPage> {
               Column(
                 children: [
                   Text(
-                    '0',
+                    '0', // NOTE: Burned calculation is separate
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,

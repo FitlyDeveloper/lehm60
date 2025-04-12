@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../Features/codia/codia_page.dart';
+import 'LogRunning.dart';
 
 class ChooseWorkout extends StatefulWidget {
   const ChooseWorkout({Key? key}) : super(key: key);
@@ -93,7 +94,14 @@ class _ChooseWorkoutState extends State<ChooseWorkout> {
                         'Running',
                         'Track your runs, jogs, sprints etc.',
                         'assets/images/Shoe.png',
-                        () {},
+                        () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const LogRunning(),
+                            ),
+                          );
+                        },
                       ),
                       const SizedBox(height: 16),
                       
