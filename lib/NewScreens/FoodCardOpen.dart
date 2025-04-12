@@ -13,15 +13,20 @@ class SlowScrollPhysics extends ScrollPhysics {
 
   @override
   double applyPhysicsToUserOffset(ScrollMetrics position, double offset) {
-    // Mouse wheel scrolling needs extreme slowdown
-    return offset * 0.01; // 99% slower
+    // Only slow down mouse wheel scrolling, speed up touch scrolling
+    if (offset.abs() < 10) {
+      // Mouse wheel typically produces smaller offset values
+      return offset * 0.3; // Slow down mouse wheel by 70%
+    }
+    return offset * 1.5; // Speed up touch scrolling by 50%
   }
 
   @override
-  double get minFlingVelocity => super.minFlingVelocity * 3.0;
+  double get minFlingVelocity => super.minFlingVelocity;
 
   @override
-  double get maxFlingVelocity => super.maxFlingVelocity * 0.3;
+  double get maxFlingVelocity =>
+      super.maxFlingVelocity * 1.2; // Increased fling velocity by 20%
 }
 
 class FoodCardOpen extends StatefulWidget {
@@ -32,34 +37,57 @@ class FoodCardOpen extends StatefulWidget {
 }
 
 class _FoodCardOpenState extends State<FoodCardOpen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   bool _isLoading = false;
   bool _isLiked = false;
   bool _isBookmarked = false; // Track bookmark state
   int _counter = 1; // Counter for +/- buttons
   late AnimationController _bookmarkController;
   late Animation<double> _bookmarkScaleAnimation;
+  late AnimationController _likeController;
+  late Animation<double> _likeScaleAnimation;
 
   @override
   void initState() {
     super.initState();
+
+    // Bookmark animations - simplified
     _bookmarkController = AnimationController(
       duration: Duration(milliseconds: 300),
       vsync: this,
     );
 
-    _bookmarkScaleAnimation = TweenSequence<double>([
-      TweenSequenceItem(tween: Tween<double>(begin: 1.0, end: 1.2), weight: 1),
-      TweenSequenceItem(tween: Tween<double>(begin: 1.2, end: 1.0), weight: 1),
-    ]).animate(CurvedAnimation(
-      parent: _bookmarkController,
-      curve: Curves.easeOut,
-    ));
+    _bookmarkScaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 1.15,
+    ).animate(
+      CurvedAnimation(
+        parent: _bookmarkController,
+        curve: Curves.easeOutBack,
+      ),
+    );
+
+    // Like animations - simplified
+    _likeController = AnimationController(
+      duration: Duration(milliseconds: 300),
+      vsync: this,
+    );
+
+    _likeScaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 1.15,
+    ).animate(
+      CurvedAnimation(
+        parent: _likeController,
+        curve: Curves.easeOutBack,
+      ),
+    );
   }
 
   @override
   void dispose() {
     _bookmarkController.dispose();
+    _likeController.dispose();
     super.dispose();
   }
 
@@ -91,6 +119,15 @@ class _FoodCardOpenState extends State<FoodCardOpen>
       _isBookmarked = !_isBookmarked;
       _bookmarkController.reset();
       _bookmarkController.forward();
+    });
+  }
+
+  // Method to toggle like state with animation
+  void _toggleLike() {
+    setState(() {
+      _isLiked = !_isLiked;
+      _likeController.reset();
+      _likeController.forward();
     });
   }
 
@@ -213,20 +250,23 @@ class _FoodCardOpenState extends State<FoodCardOpen>
                       ),
                       child: Column(
                         children: [
+                          // Add 20px gap at top of white container
+                          SizedBox(height: 20),
+
                           // Time and interaction buttons
                           Padding(
-                            padding: const EdgeInsets.fromLTRB(29, 20, 29, 0),
+                            padding: const EdgeInsets.fromLTRB(29, 0, 29, 0),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 // Left side: Bookmark and time
                                 Row(
                                   children: [
-                                    // Bookmark button with animation
+                                    // Bookmark button with enhanced animation
                                     GestureDetector(
                                       onTap: _toggleBookmark,
                                       child: AnimatedBuilder(
-                                        animation: _bookmarkScaleAnimation,
+                                        animation: _bookmarkController,
                                         builder: (context, child) {
                                           return Transform.scale(
                                             scale:
@@ -331,10 +371,10 @@ class _FoodCardOpenState extends State<FoodCardOpen>
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Title and subtitle area with adjusted vertical spacing
+                              // Title and subtitle area with 14px top spacing
                               Padding(
                                 padding: const EdgeInsets.only(
-                                    left: 29, right: 29, top: 18, bottom: 20),
+                                    left: 29, right: 29, top: 14, bottom: 0),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -354,6 +394,8 @@ class _FoodCardOpenState extends State<FoodCardOpen>
                                         color: Colors.grey[600],
                                       ),
                                     ),
+                                    // Add 20px gap between subtitle and divider
+                                    SizedBox(height: 20),
                                   ],
                                 ),
                               ),
@@ -379,11 +421,25 @@ class _FoodCardOpenState extends State<FoodCardOpen>
                                     // Like button area (left section)
                                     Row(
                                       children: [
-                                        Image.asset(
-                                          'assets/images/like.png',
-                                          width: 24,
-                                          height: 24,
-                                          color: Colors.black,
+                                        GestureDetector(
+                                          onTap: _toggleLike,
+                                          child: AnimatedBuilder(
+                                            animation: _likeController,
+                                            builder: (context, child) {
+                                              return Transform.scale(
+                                                scale:
+                                                    _likeScaleAnimation.value,
+                                                child: Image.asset(
+                                                  _isLiked
+                                                      ? 'assets/images/likefilled.png'
+                                                      : 'assets/images/like.png',
+                                                  width: 24,
+                                                  height: 24,
+                                                  color: Colors.black,
+                                                ),
+                                              );
+                                            },
+                                          ),
                                         ),
                                         SizedBox(width: 8),
                                         Text(
@@ -443,7 +499,7 @@ class _FoodCardOpenState extends State<FoodCardOpen>
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Add 20px gap between divider and calories
+                              // Exact 20px gap between divider and calories
                               SizedBox(height: 20),
 
                               // Calories and macros card
@@ -534,7 +590,8 @@ class _FoodCardOpenState extends State<FoodCardOpen>
                                 ),
                               ),
 
-                              SizedBox(height: 40),
+                              // Gap between calorie box and health score - changed to 15px
+                              SizedBox(height: 15),
 
                               // Health Score
                               Padding(
@@ -633,6 +690,9 @@ class _FoodCardOpenState extends State<FoodCardOpen>
                                 ),
                               ),
 
+                              // Gap between health score and ingredients label - set to 20px
+                              SizedBox(height: 20),
+
                               // Ingredients
                               Padding(
                                 padding:
@@ -648,6 +708,7 @@ class _FoodCardOpenState extends State<FoodCardOpen>
                                         fontFamily: 'SF Pro Display',
                                       ),
                                     ),
+                                    // Gap between Ingredients label and boxes - set to 20px
                                     SizedBox(height: 20),
                                     Row(
                                       mainAxisAlignment:
@@ -659,59 +720,34 @@ class _FoodCardOpenState extends State<FoodCardOpen>
                                             'Berries', '20g', '10 kcal'),
                                       ],
                                     ),
-                                    SizedBox(height: 20),
+                                    // Gap between rows of ingredient boxes - set to 15px
+                                    SizedBox(height: 15),
                                     Row(
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceBetween,
                                       children: [
                                         _buildIngredient(
                                             'Jam', '10g', '20 kcal'),
-                                        Container(
-                                          width: (MediaQuery.of(context)
-                                                      .size
-                                                      .width -
-                                                  78) /
-                                              2,
-                                          height: 110,
-                                          decoration: BoxDecoration(
-                                            color: Colors.white,
-                                            borderRadius:
-                                                BorderRadius.circular(20),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: Colors.black
-                                                    .withOpacity(0.05),
-                                                blurRadius: 10,
-                                                offset: Offset(0, 5),
+                                        // Wrap the Add box in a Stack to overlay the icon
+                                        Stack(
+                                          alignment: Alignment.center,
+                                          children: [
+                                            // This handles the box structure and "Add" text alignment
+                                            _buildIngredient('Add', '', ''),
+                                            // Add the icon as a separate overlay, centered, and pushed down
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                  top:
+                                                      20.0), // Moved down another 10px (was 10)
+                                              child: Image.asset(
+                                                'assets/images/add.png',
+                                                width:
+                                                    29.0, // Increased size by 10% (was 26.4)
+                                                height:
+                                                    29.0, // Increased size by 10% (was 26.4)
                                               ),
-                                            ],
-                                          ),
-                                          child: Stack(
-                                            children: [
-                                              Positioned(
-                                                top: 12,
-                                                left: 0,
-                                                right: 0,
-                                                child: Text(
-                                                  'Add',
-                                                  style: TextStyle(
-                                                    fontSize: 16,
-                                                    fontWeight: FontWeight.w600,
-                                                    fontFamily:
-                                                        'SF Pro Display',
-                                                  ),
-                                                  textAlign: TextAlign.center,
-                                                ),
-                                              ),
-                                              Center(
-                                                child: Image.asset(
-                                                  'assets/images/add.png',
-                                                  width: 26.4,
-                                                  height: 26.4,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
+                                            ),
+                                          ],
                                         ),
                                       ],
                                     ),
@@ -719,6 +755,7 @@ class _FoodCardOpenState extends State<FoodCardOpen>
                                 ),
                               ),
 
+                              // Set exact 20px spacing between Ingredients section and More label
                               SizedBox(height: 20),
 
                               // More options
@@ -736,13 +773,13 @@ class _FoodCardOpenState extends State<FoodCardOpen>
                                         fontFamily: 'SF Pro Display',
                                       ),
                                     ),
-                                    SizedBox(height: 16),
-                                    _buildMoreOption('In-Depth Nutrition',
-                                        Icons.analytics_outlined),
+                                    // Set exact 20px spacing between More label and buttons
+                                    SizedBox(height: 20),
                                     _buildMoreOption(
-                                        'Fix Manually', Icons.edit_outlined),
-                                    _buildMoreOption('Fix with AI',
-                                        Icons.auto_awesome_outlined),
+                                        'In-Depth Nutrition', 'nutrition.png'),
+                                    _buildMoreOption(
+                                        'Fix Manually', 'pencilicon.png'),
+                                    _buildMoreOption('Fix with AI', 'bulb.png'),
                                   ],
                                 ),
                               ),
@@ -893,22 +930,74 @@ class _FoodCardOpenState extends State<FoodCardOpen>
     );
   }
 
-  Widget _buildMoreOption(String title, IconData icon) {
+  Widget _buildMoreOption(String title, String iconAsset) {
+    // Base icon size for pencilicon.png
+    double baseIconSize = 25.0;
+    // Calculate 10% larger size for the other two icons
+    double largerIconSize = baseIconSize * 1.1; // 27.5px
+
+    // Determine the size for the current icon
+    double iconSize = (iconAsset == 'nutrition.png' || iconAsset == 'bulb.png')
+        ? largerIconSize
+        : baseIconSize;
+
     return Container(
-      margin: EdgeInsets.only(bottom: 12),
-      padding: EdgeInsets.all(16),
+      margin: EdgeInsets.only(bottom: 15), // Set gap between boxes to 15px
+      padding: EdgeInsets.symmetric(vertical: 0, horizontal: 20),
+      width: double.infinity,
+      height: 45,
       decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(12),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: Offset(0, 5),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          Icon(icon),
-          SizedBox(width: 12),
-          Text(
-            title,
-            style: TextStyle(fontSize: 16),
+          // Add 40px padding before the icon alignment container (35 + 5)
+          SizedBox(width: 40),
+          // Container to ensure icons align vertically and have space
+          SizedBox(
+            width: 40, // Keep this width consistent for alignment
+            child: Align(
+              alignment:
+                  Alignment.centerLeft, // Align icon to the left of this box
+              child: SizedBox(
+                width: iconSize, // Use the calculated size
+                height: iconSize, // Use the calculated size
+                child: Image.asset(
+                  'assets/images/$iconAsset',
+                  width: iconSize, // Apply calculated width
+                  height: iconSize, // Apply calculated height
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
           ),
+          SizedBox(width: 8),
+          Expanded(
+            child: Center(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 16, // Matches Health Score text size
+                  fontWeight: FontWeight.normal,
+                  color: Colors.black,
+                ),
+                textAlign: TextAlign.center,
+                softWrap: false, // Prevent text from wrapping to the next line
+                overflow: TextOverflow
+                    .visible, // Allow text to overflow container bounds
+              ),
+            ),
+          ),
+          // Adjust balance spacing for the added left padding
+          SizedBox(width: 88), // (40 padding + 40 icon area + 8 gap)
         ],
       ),
     );
