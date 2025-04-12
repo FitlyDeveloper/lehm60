@@ -15,6 +15,7 @@ dependencies:
   firebase_core: ^3.12.1
   firebase_auth: ^5.5.1
   grouped_list: ^5.1.2
+  camera: ^0.11.1
   # Firebase dependencies are removed for web compatibility
 
 dev_dependencies:
@@ -27,7 +28,6 @@ flutter:                    # Only ONE flutter: section should exist
   assets:
     - assets/images/ 
     - assets/fonts/
-    - assets/codia_images/
     - assets/images/turtle.png
     - assets/images/rabbit2.png
     - assets/images/eagle.png
