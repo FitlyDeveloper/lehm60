@@ -166,11 +166,10 @@ class _NextIntroScreen4State extends State<NextIntroScreen4> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => NextIntroScreen5(
+        builder: (context) => WeightHeightCopyScreen(
           isMetric: isMetric,
-          selectedWeight: selectedWeight.value,
+          initialWeight: selectedWeight.value,
           gymGoal: widget.gymGoal,
-          heightInCm: heightInCm, // Pass the calculated height
         ),
       ),
     );

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
-import 'dart:math' as math;
+import 'dart:math' as math; // Change this line to import math with alias
 import 'package:fitness_app/Features/onboarding/presentation/screens/speed_screen.dart';
 import 'package:fitness_app/Features/onboarding/presentation/screens/comfort_screen.dart';
 import 'package:fitness_app/Features/onboarding/presentation/screens/gender_selection_screen.dart';
@@ -367,10 +367,10 @@ class _WeightGoalCopyScreenState extends State<WeightGoalCopyScreen> {
                     );
                   },
                   child: const Text(
-                    'Continue',
+                    'Next',
                     style: TextStyle(
                       fontSize: 17,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w600,
                       fontFamily: '.SF Pro Display',
                       color: Colors.white,
                     ),
