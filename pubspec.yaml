@@ -26,7 +26,7 @@ dev_dependencies:
 flutter:                    # Only ONE flutter: section should exist
   uses-material-design: true
   assets:
-    - assets/images/ 
+    - assets/images/
     - assets/fonts/
     - assets/images/turtle.png
     - assets/images/rabbit2.png
@@ -35,3 +35,6 @@ flutter:                    # Only ONE flutter: section should exist
     - assets/images/protein.png
     - assets/images/fat.png
     - assets/images/carbs.png
+    - assets/images/plus.png
+    - assets/images/list.png
+    - assets/images/person.png

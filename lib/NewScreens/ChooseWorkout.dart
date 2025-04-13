@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:grouped_list/grouped_list.dart';
 import '../Features/codia/codia_page.dart';
 import 'LogRunning.dart';
+import 'LogDescribeExercise.dart';
+import 'WeightLifting.dart';
 
 class ChooseWorkout extends StatefulWidget {
   const ChooseWorkout({Key? key}) : super(key: key);
@@ -85,7 +88,14 @@ class _ChooseWorkoutState extends State<ChooseWorkout> {
                         'Weight Lifting',
                         'Build strength with machines or free weights',
                         'assets/images/dumbbell.png',
-                        () {},
+                        () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const WeightLifting(),
+                            ),
+                          );
+                        },
                       ),
                       const SizedBox(height: 16),
                       
@@ -110,7 +120,14 @@ class _ChooseWorkoutState extends State<ChooseWorkout> {
                         'More',
                         'Create custom exercises',
                         'assets/images/add.png',
-                        () {},
+                        () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => LogDescribeExercise(),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),

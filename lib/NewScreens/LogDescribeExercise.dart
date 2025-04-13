@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 
-class LogRunning extends StatefulWidget {
-  const LogRunning({Key? key}) : super(key: key);
+class LogDescribeExercise extends StatefulWidget {
+  const LogDescribeExercise({Key? key}) : super(key: key);
 
   @override
-  State<LogRunning> createState() => _LogRunningState();
+  State<LogDescribeExercise> createState() => _LogDescribeExerciseState();
 }
 
-class _LogRunningState extends State<LogRunning> {
+class _LogDescribeExerciseState extends State<LogDescribeExercise> {
+  final TextEditingController _exerciseController = TextEditingController();
   final TextEditingController _distanceController = TextEditingController();
   final TextEditingController _timeController = TextEditingController();
   
@@ -19,6 +20,7 @@ class _LogRunningState extends State<LogRunning> {
 
   @override
   void dispose() {
+    _exerciseController.dispose();
     _distanceController.dispose();
     _timeController.dispose();
     super.dispose();
@@ -63,25 +65,14 @@ class _LogRunningState extends State<LogRunning> {
                                 ),
                                 Expanded(
                                   child: Center(
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          'Running',
-                                          style: TextStyle(
-                                            color: Colors.black,
-                                            fontSize: 24,
-                                            fontWeight: FontWeight.bold,
-                                            fontFamily: 'SF Pro Display',
-                                          ),
-                                        ),
-                                        SizedBox(width: 8),
-                                        Image.asset(
-                                          'assets/images/Shoe.png',
-                                          width: 24,
-                                          height: 24,
-                                        ),
-                                      ],
+                                    child: Text(
+                                      'Describe Exercise',
+                                      style: TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                        fontFamily: 'SF Pro Display',
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -106,17 +97,17 @@ class _LogRunningState extends State<LogRunning> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           SizedBox(height: 20),
-                          // Distance Section
+                          // Exercise Section
                           Row(
                             children: [
                               Image.asset(
-                                'assets/images/Distance.png',
+                                'assets/images/add.png',
                                 width: 24,
                                 height: 24,
                               ),
                               SizedBox(width: 8),
                               Text(
-                                'Distance',
+                                'Exercise',
                                 style: TextStyle(
                                   fontSize: 22,
                                   fontWeight: FontWeight.bold,
@@ -126,42 +117,129 @@ class _LogRunningState extends State<LogRunning> {
                             ],
                           ),
                           SizedBox(height: 15),
+                          // Exercise TextField
+                          Container(
+                            height: 56,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(15),
+                              border: Border.all(color: Colors.grey[300]!),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.05),
+                                  blurRadius: 10,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: TextField(
+                              controller: _exerciseController,
+                              textAlign: TextAlign.left,
+                              textAlignVertical: TextAlignVertical.center,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w400,
+                                color: Colors.black,
+                              ),
+                              decoration: InputDecoration(
+                                hintText: 'Swimming, football, cycling etc',
+                                hintStyle: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                                border: InputBorder.none,
+                                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                isCollapsed: true,
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 20),
+                          
+                          // Distance Section with Intensity
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  Image.asset(
+                                    'assets/images/Distance.png',
+                                    width: 24,
+                                    height: 24,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Distance',
+                                    style: TextStyle(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold,
+                                      fontFamily: 'SF Pro Display',
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Row(
+                                children: [
+                                  Image.asset(
+                                    'assets/images/intensity.png',
+                                    width: 24,
+                                    height: 24,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Intensity',
+                                    style: TextStyle(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w500,
+                                      fontFamily: 'SF Pro Display',
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 15),
                           // Distance Chips
-                          Wrap(
-                            spacing: 10,
-                            runSpacing: 10,
-                            children: distances.map((distance) {
-                              return ChoiceChip(
-                                label: Text(
-                                  distance,
-                                  style: TextStyle(
-                                    color: selectedDistance == distance ? Colors.white : Colors.black,
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 13,
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: distances.map((distance) {
+                                return Padding(
+                                  padding: EdgeInsets.only(right: 15),
+                                  child: ChoiceChip(
+                                    label: Text(
+                                      distance,
+                                      style: TextStyle(
+                                        color: selectedDistance == distance ? Colors.white : Colors.black,
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                    selected: selectedDistance == distance,
+                                    onSelected: (bool selected) {
+                                      setState(() {
+                                        selectedDistance = selected ? distance : null;
+                                        if (selected) {
+                                          _distanceController.text = distance.replaceAll(' km', '');
+                                        }
+                                      });
+                                    },
+                                    backgroundColor: Colors.white,
+                                    selectedColor: Colors.black,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20),
+                                      side: BorderSide(
+                                        color: selectedDistance == distance ? Colors.black : Colors.grey[300]!,
+                                      ),
+                                    ),
+                                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    visualDensity: VisualDensity.compact,
                                   ),
-                                ),
-                                selected: selectedDistance == distance,
-                                onSelected: (bool selected) {
-                                  setState(() {
-                                    selectedDistance = selected ? distance : null;
-                                    if (selected) {
-                                      _distanceController.text = distance.replaceAll(' km', '');
-                                    }
-                                  });
-                                },
-                                backgroundColor: Colors.white,
-                                selectedColor: Colors.black,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                  side: BorderSide(
-                                    color: selectedDistance == distance ? Colors.black : Colors.grey[300]!,
-                                  ),
-                                ),
-                                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                visualDensity: VisualDensity.compact,
-                              );
-                            }).toList(),
+                                );
+                              }).toList(),
+                            ),
                           ),
                           SizedBox(height: 15),
                           // Distance TextField
