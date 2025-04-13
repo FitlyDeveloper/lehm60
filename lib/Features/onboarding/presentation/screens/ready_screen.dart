@@ -127,7 +127,7 @@ class _ReadyScreenState extends State<ReadyScreen> {
                             letterSpacing: -0.5,
                           ),
                         ),
-                        const SizedBox(height: 145),
+                        const SizedBox(height: 165),
                         Center(
                           child: Column(
                             children: [
