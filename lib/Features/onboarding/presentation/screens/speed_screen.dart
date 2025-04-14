@@ -4,6 +4,7 @@ import 'package:flutter/gestures.dart';
 import 'dart:math' as math;
 import 'package:fitness_app/Features/onboarding/presentation/screens/comfort_screen.dart';
 import 'package:fitness_app/Features/onboarding/presentation/screens/calculation_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SpeedScreen extends StatefulWidget {
   final bool isMetric;
@@ -38,6 +39,28 @@ class _SpeedScreenState extends State<SpeedScreen> {
   late final double minWeight;
   late final double maxWeight;
   double _dragAccumulator = 0;
+
+  // Save goal speed to SharedPreferences
+  Future<void> _saveGoalSpeed() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // Save speed value in kg/week
+      double speedKgPerWeek = widget.isMetric ? speedValue : speedValue * 0.453592;
+      await prefs.setDouble('goal_speed_kg_per_week', speedKgPerWeek);
+
+      // Verify it was saved correctly
+      final savedSpeed = prefs.getDouble('goal_speed_kg_per_week');
+      print('Goal speed saved to SharedPreferences:');
+      print('Key: goal_speed_kg_per_week, Value: $savedSpeed');
+
+      // Print all keys for debugging
+      print('All SharedPreferences keys after saving:');
+      print(prefs.getKeys());
+    } catch (e) {
+      print('Error saving goal speed: $e');
+    }
+  }
 
   @override
   void initState() {
@@ -393,7 +416,8 @@ class _SpeedScreenState extends State<SpeedScreen> {
                   borderRadius: BorderRadius.circular(28),
                 ),
                 child: TextButton(
-                  onPressed: () {
+                  onPressed: () async {
+                    await _saveGoalSpeed();
                     Navigator.push(
                       context,
                       MaterialPageRoute(

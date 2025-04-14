@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fitness_app/Features/onboarding/presentation/screens/next_intro_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class WeightGoalScreen extends StatefulWidget {
   const WeightGoalScreen({Key? key}) : super(key: key);
@@ -12,6 +13,30 @@ class _WeightGoalScreenState extends State<WeightGoalScreen> {
   static const int totalSteps = 7;
   static const int currentStep = 3;
   String? selectedGoal;
+
+  // Save goal to SharedPreferences
+  Future<void> _saveGoal() async {
+    if (selectedGoal != null) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+
+        // Convert goal to lowercase for consistency
+        String goal = selectedGoal!.toLowerCase().split(' ')[0]; // 'lose', 'maintain', or 'gain'
+        await prefs.setString('user_goal', goal);
+
+        // Verify it was saved correctly
+        final savedGoal = prefs.getString('user_goal');
+        print('Goal saved to SharedPreferences:');
+        print('Key: user_goal, Value: $savedGoal');
+
+        // Print all keys for debugging
+        print('All SharedPreferences keys after saving:');
+        print(prefs.getKeys());
+      } catch (e) {
+        print('Error saving goal: $e');
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -134,7 +159,8 @@ class _WeightGoalScreenState extends State<WeightGoalScreen> {
                 ),
                 child: TextButton(
                   onPressed: selectedGoal != null
-                      ? () {
+                      ? () async {
+                          await _saveGoal();
                           Navigator.push(
                             context,
                             MaterialPageRoute(

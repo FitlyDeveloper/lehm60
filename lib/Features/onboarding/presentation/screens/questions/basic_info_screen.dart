@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class BasicInfoScreen extends StatefulWidget {
   const BasicInfoScreen({super.key});
@@ -11,6 +12,29 @@ class _BasicInfoScreenState extends State<BasicInfoScreen> {
   final _formKey = GlobalKey<FormState>();
   int? age;
   String? gender;
+
+  // Save age to SharedPreferences
+  Future<void> _saveAge() async {
+    if (age != null) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+
+        // Save data and verify
+        await prefs.setInt('user_age', age!);
+
+        // Verify it was saved correctly
+        final savedAge = prefs.getInt('user_age');
+        print('Age saved to SharedPreferences:');
+        print('Key: user_age, Value: $savedAge');
+
+        // Print all keys for debugging
+        print('All SharedPreferences keys after saving:');
+        print(prefs.getKeys());
+      } catch (e) {
+        print('Error saving age: $e');
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -78,7 +102,8 @@ class _BasicInfoScreenState extends State<BasicInfoScreen> {
                 margin: const EdgeInsets.only(bottom: 16),
                 child: ElevatedButton(
                   onPressed: age != null
-                      ? () {
+                      ? () async {
+                          await _saveAge();
                           // Navigate to next question
                         }
                       : null,

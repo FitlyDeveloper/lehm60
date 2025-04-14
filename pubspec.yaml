@@ -35,6 +35,3 @@ flutter:                    # Only ONE flutter: section should exist
     - assets/images/protein.png
     - assets/images/fat.png
     - assets/images/carbs.png
-    - assets/images/plus.png
-    - assets/images/list.png
-    - assets/images/person.png
