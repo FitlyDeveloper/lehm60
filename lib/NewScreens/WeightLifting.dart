@@ -30,25 +30,20 @@ class _WeightLiftingState extends State<WeightLifting> {
         ),
         centerTitle: true,
         bottom: PreferredSize(
-          preferredSize: Size.fromHeight(41),
-          child: Column(
-            children: [
-              SizedBox(height: 20),
-              Container(
-                height: 0.5,
-                color: Colors.grey[300],
-              ),
-            ],
+          preferredSize: Size.fromHeight(1),
+          child: Container(
+            height: 0.5,
+            color: Colors.grey[300],
           ),
         ),
       ),
       body: SingleChildScrollView(
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20),
+          padding: EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(height: 20),
+              SizedBox(height: 24),
               // Quick Start Section
               Text(
                 'Quick Start',
@@ -59,9 +54,10 @@ class _WeightLiftingState extends State<WeightLifting> {
                   fontFamily: 'SF Pro Display',
                 ),
               ),
-              SizedBox(height: 20),
+              SizedBox(height: 16),
               // Start Workout Button
               Container(
+                width: double.infinity,
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(15),
@@ -82,12 +78,12 @@ class _WeightLiftingState extends State<WeightLifting> {
                     },
                     borderRadius: BorderRadius.circular(15),
                     child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: EdgeInsets.all(16),
                       child: Row(
                         children: [
                           Icon(
                             Icons.add,
-                            size: 24,
+                            size: 20,
                             color: Colors.black,
                           ),
                           SizedBox(width: 12),
@@ -118,7 +114,7 @@ class _WeightLiftingState extends State<WeightLifting> {
                   fontFamily: 'SF Pro Display',
                 ),
               ),
-              SizedBox(height: 20),
+              SizedBox(height: 16),
               // Routines Row
               Row(
                 children: [
@@ -144,14 +140,13 @@ class _WeightLiftingState extends State<WeightLifting> {
                           },
                           borderRadius: BorderRadius.circular(15),
                           child: Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            padding: EdgeInsets.all(16),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.start,
-                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
                                 Icon(
                                   Icons.format_list_bulleted,
-                                  size: 24,
+                                  size: 20,
                                   color: Colors.black,
                                 ),
                                 SizedBox(width: 12),
@@ -171,7 +166,7 @@ class _WeightLiftingState extends State<WeightLifting> {
                       ),
                     ),
                   ),
-                  SizedBox(width: 12),
+                  SizedBox(width: 16),
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
@@ -194,14 +189,13 @@ class _WeightLiftingState extends State<WeightLifting> {
                           },
                           borderRadius: BorderRadius.circular(15),
                           child: Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            padding: EdgeInsets.all(16),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.start,
-                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
                                 Icon(
                                   Icons.person_outline,
-                                  size: 24,
+                                  size: 20,
                                   color: Colors.black,
                                 ),
                                 SizedBox(width: 12),
@@ -223,54 +217,57 @@ class _WeightLiftingState extends State<WeightLifting> {
                   ),
                 ],
               ),
-              SizedBox(height: 20),
+              SizedBox(height: 16),
               // My Routines Dropdown
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey[300]!),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Theme(
-                  data: Theme.of(context).copyWith(
-                    dividerColor: Colors.transparent,
+              IntrinsicWidth(
+                child: Container(
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.grey[300]!),
                   ),
-                  child: ExpansionTile(
-                    tilePadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    title: Text(
-                      'My Routines (1)',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.black,
-                        fontFamily: 'SF Pro Display',
+                  child: Theme(
+                    data: Theme.of(context).copyWith(
+                      dividerColor: Colors.transparent,
+                    ),
+                    child: ExpansionTile(
+                      tilePadding: EdgeInsets.symmetric(horizontal: 14, vertical: 0),
+                      title: Text(
+                        'My Routines (1)',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black,
+                          fontFamily: 'SF Pro Display',
+                        ),
                       ),
+                      trailing: Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        size: 14,
+                        color: Colors.black,
+                      ),
+                      iconColor: Colors.black,
+                      collapsedIconColor: Colors.black,
+                      backgroundColor: Colors.transparent,
+                      collapsedBackgroundColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      collapsedShape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      children: [],
+                      maintainState: true,
                     ),
-                    iconColor: Colors.black,
-                    collapsedIconColor: Colors.black,
-                    backgroundColor: Colors.transparent,
-                    collapsedBackgroundColor: Colors.transparent,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    collapsedShape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    children: [], // Add your routine items here
                   ),
                 ),
               ),
-              SizedBox(height: 24),
+              SizedBox(height: 20),
               
               // Push Section
               Container(
+                width: double.infinity,
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(15),
@@ -310,7 +307,7 @@ class _WeightLiftingState extends State<WeightLifting> {
                       SizedBox(height: 16),
                       SizedBox(
                         width: double.infinity,
-                        height: 56,
+                        height: 48,
                         child: ElevatedButton(
                           onPressed: () {
                             // Handle start routine
@@ -319,9 +316,8 @@ class _WeightLiftingState extends State<WeightLifting> {
                             backgroundColor: Colors.black,
                             elevation: 0,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(28),
+                              borderRadius: BorderRadius.circular(24),
                             ),
-                            padding: EdgeInsets.zero,
                           ),
                           child: Text(
                             'Start Routine',
