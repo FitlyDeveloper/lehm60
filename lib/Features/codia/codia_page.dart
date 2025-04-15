@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'Memories.dart';
 import '../../NewScreens/ChooseWorkout.dart';
+import '../../NewScreens/Coach.dart';
 import 'flip_card.dart';
 import 'home_card2.dart';
 import '../../NewScreens/FoodCardOpen.dart';
@@ -17,15 +18,22 @@ class CodiaPage extends StatefulWidget {
 class _CodiaPageState extends State<CodiaPage> {
   int _selectedIndex = 0; // Track selected nav item
   bool _showFrontCard = true; // Track which card is showing
+  bool isLoading = true; // Add this if it doesn't exist
+  int targetCalories = 0; // Add this if it doesn't exist
+  int remainingCalories = 0; // Add this to track remaining calories
+  bool isImperial = false; // Track metric/imperial setting
+  double originalGoalSpeed = 0.0; // Track original goal speed for logs
 
   // User data variables - will be populated from saved answers
   String userGender = 'Female'; // Default values, will be overridden
   double userWeightKg = 70.0;
   double userHeightCm = 165.0;
   int userAge = 30;
-  String userGoal = 'lose';
+  String userGoal = 'maintain'; // FIXED: Default to maintain instead of lose
   double goalSpeedKgPerWeek = 0.5;
   double dailyCalorieAdjustment = 0.0; // Add this line to track the adjustment
+  String userGymGoal =
+      "null"; // FIXED: Default to "null" for balanced macros, not "Build Muscle"
 
   @override
   void initState() {
@@ -33,132 +41,242 @@ class _CodiaPageState extends State<CodiaPage> {
     _loadUserData(); // Load the user's actual data from storage
   }
 
-  // For testing calculations with manual data
-  void _setTestUserData(String testCase) {
-    if (testCase == 'male_lose') {
-      setState(() {
-        userGender = 'Male';
-        userWeightKg = 80.0;
-        userHeightCm = 180.0;
-        userAge = 35;
-        userGoal = 'lose';
-        goalSpeedKgPerWeek = 0.7;
-      });
-    } else if (testCase == 'female_gain') {
-      setState(() {
-        userGender = 'Female';
-        userWeightKg = 60.0;
-        userHeightCm = 165.0;
-        userAge = 28;
-        userGoal = 'gain';
-        goalSpeedKgPerWeek = 0.3;
-      });
-    } else if (testCase == 'custom') {
-      // Try to match what might be causing the fixed value of 1644/1684
-      setState(() {
-        userGender =
-            'Female'; // Try Female since BMR equation has -161 constant
-        userWeightKg = 65.0; // Adjusted to potentially result in ~1684 calories
-        userHeightCm = 170.0;
-        userAge = 25;
-        userGoal = 'lose';
-        goalSpeedKgPerWeek = 0.5; // 0.5 kg per week is standard
-      });
-    }
-
-    print('Set test data to $testCase:');
-    print('Gender: $userGender');
-    print('Weight: $userWeightKg kg');
-    print('Height: $userHeightCm cm');
-    print('Age: $userAge');
-    print('Goal: $userGoal');
-    print('Goal Speed: $goalSpeedKgPerWeek kg/week');
-
-    double calories = _calculateTargetCalories();
-    print('Calculated calories: $calories');
-  }
-
-  // Load user data from SharedPreferences (or your storage mechanism)
+  // Load user data from SharedPreferences
   Future<void> _loadUserData() async {
-    try {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
+    isLoading = true;
 
-      // Log all keys for debugging
-      print('All SharedPreferences keys: ${prefs.getKeys().toList()}');
+    final prefs = await SharedPreferences.getInstance();
 
-      // Check if we have any user data at all
-      bool hasUserData = prefs.containsKey('user_gender') ||
-          prefs.containsKey('user_weight_kg') ||
-          prefs.containsKey('user_goal');
+    debugPrint('Loading user data and calculating nutrition needs...');
+    debugPrint('Keys in SharedPreferences: ${prefs.getKeys().toString()}');
 
-      if (!hasUserData) {
-        print(
-            'WARNING: No user data found in SharedPreferences. Using test data instead.');
-        _setTestUserData('custom'); // Use custom test case to check calculation
-        return;
+    // Debug - dump all data in the console to inspect
+    debugPrint('\nALL SHAREDPREFERENCES DATA:');
+    for (var key in prefs.getKeys()) {
+      if (key == 'user_weight_kg') {
+        debugPrint('$key: ${prefs.getDouble(key)}');
+      } else if (key == 'user_height_cm') {
+        debugPrint('$key: ${prefs.getInt(key)}');
+      } else if (key.contains('gender')) {
+        debugPrint('GENDER KEY FOUND: $key: ${prefs.getString(key)}');
+      } else {
+        try {
+          debugPrint(
+              '$key: ${prefs.getString(key) ?? prefs.getDouble(key) ?? prefs.getInt(key) ?? prefs.getBool(key)}');
+        } catch (e) {
+          debugPrint('$key: Error reading');
+        }
       }
-
-      // Load data using the exact keys from the onboarding screens
-      setState(() {
-        // From gender_screen.dart
-        userGender = prefs.getString('user_gender') ?? 'Female';
-
-        // From weight_height_screen.dart
-        userWeightKg = prefs.getDouble('user_weight_kg') ?? 70.0;
-        userHeightCm = prefs.getDouble('user_height_cm') ?? 165.0;
-
-        // From speed_screen.dart
-        userAge = prefs.getInt('user_age') ?? 30;
-
-        // From weight_goal_screen.dart
-        userGoal = prefs.getString('user_goal') ?? 'lose';
-
-        // From speed_screen.dart
-        goalSpeedKgPerWeek = prefs.getDouble('goal_speed_kg_per_week') ?? 0.5;
-      });
-
-      // Print loaded data for debugging
-      print('Loaded User Data:');
-      print('Gender: $userGender');
-      print('Weight: $userWeightKg kg');
-      print('Height: $userHeightCm cm');
-      print('Age: $userAge');
-      print('Goal: $userGoal');
-      print('Goal Speed: $goalSpeedKgPerWeek kg/week');
-
-      // Calculate and print calories for debugging
-      double calories = _calculateTargetCalories();
-      print('Calculated calories from loaded data: $calories');
-
-      // Force rebuild to update displayed calories with new data
-      if (mounted) {
-        setState(() {});
-      }
-    } catch (e) {
-      print('Error loading user data: $e');
-      // Fall back to test data on error
-      print('Using test data due to error');
-      _setTestUserData('custom');
     }
+
+    // Get birth date and calculate age exactly like before - this works correctly
+    String? birthDateStr = prefs.getString('birth_date');
+    debugPrint('Loaded birth_date: $birthDateStr');
+
+    int age = 25; // Default age
+    if (birthDateStr != null) {
+      try {
+        DateTime birthDate = DateTime.parse(birthDateStr);
+        age = DateTime.now().year - birthDate.year;
+        if (DateTime.now().month < birthDate.month ||
+            (DateTime.now().month == birthDate.month &&
+                DateTime.now().day < birthDate.day)) {
+          age--;
+        }
+        debugPrint(
+            'Successfully calculated age: $age from birth date: $birthDateStr');
+      } catch (e) {
+        debugPrint('Error parsing birth date: $e');
+      }
+    }
+
+    // Read the user's gender selection
+    String gender;
+
+    // Check SharedPreferences for gender (reduced logging)
+    if (prefs.containsKey('user_gender')) {
+      gender = prefs.getString('user_gender')!;
+    } else if (prefs.containsKey('gender')) {
+      gender = prefs.getString('gender')!;
+    } else {
+      gender = 'Female'; // Default to Female if no gender found
+    }
+    debugPrint('Using gender: "$gender"');
+
+    // Get goal - exact same key as in speed_screen
+    String goal = prefs.getString('goal') ?? 'maintain';
+    debugPrint('Loaded goal from SharedPreferences: "$goal"');
+
+    // CRITICAL CHECK: Explicitly look for 'maintain' goal
+    bool isMaintaining = goal == 'maintain';
+    if (isMaintaining) {
+      debugPrint('DETECTED MAINTAIN GOAL - will use TDEE with no adjustment');
+    } else {
+      debugPrint('Goal is not maintain: "$goal"');
+    }
+
+    // Get gym goal - used for macro distribution
+    String? gymGoal = prefs.getString('gymGoal');
+    debugPrint('Loaded gymGoal: "$gymGoal"');
+
+    // Check if gymGoal is different from common values
+    if (gymGoal != null) {
+      debugPrint('Found gymGoal in SharedPreferences: "$gymGoal"');
+    } else {
+      debugPrint(
+          'gymGoal is NULL in SharedPreferences, will default to "null" string');
+    }
+
+    // Get goal speed multiplier - exact same key as in speed_screen
+    double goalSpeed = prefs.getDouble('goal_speed') ?? 1.0;
+    double originalGoalSpeed = goalSpeed; // Store original value for logging
+
+    // Get is_metric setting if available
+    bool isMetric = prefs.getBool('is_metric') ??
+        false; // Default to false (imperial) to be safe
+
+    // FIXED DETECTION: We need to determine if we're in imperial units
+    // Since the is_metric flag isn't being saved to SharedPreferences, detect based on:
+    // 1. If weightInKg is unusually high (American weights are ~2.2x higher in lbs than kg)
+    // 2. If goalSpeed is a common imperial value (usually 1-2 lbs/week)
+    bool isLikelyImperial = false;
+
+    // Get weight using exact same key as weight_height_screen and weight_height_copy_screen
+    double weightInKg = prefs.getDouble('user_weight_kg') ?? 70.0;
+    debugPrint('Loaded weight: $weightInKg kg');
+
+    // If weight is >100kg, it's likely in pounds
+    if (weightInKg > 100) {
+      isLikelyImperial = true;
+      debugPrint('Detected imperial units from high weight value: $weightInKg');
+    }
+
+    // If goal speed is a common imperial value and not a clean metric value
+    if (goalSpeed >= 0.5 && goalSpeed <= 2.0 && goalSpeed % 0.5 == 0) {
+      isLikelyImperial = true;
+      debugPrint(
+          'Detected imperial units from typical imperial goal speed: $goalSpeed lb/week');
+    }
+
+    // Override the setting if we detected imperial units
+    if (isLikelyImperial) {
+      isMetric = false;
+    }
+
+    // Final determination of units
+    isImperial = !isMetric;
+    debugPrint(
+        'Unit system: ${isMetric ? "Metric" : "Imperial"} (${isLikelyImperial ? "detected from values" : "from settings"})');
+
+    // Only convert if using imperial units
+    if (isImperial) {
+      // Convert from lb/week to kg/week (1 lb ≈ 0.453592 kg)
+      goalSpeed = goalSpeed * 0.453592;
+
+      // Round to 1 decimal place immediately after conversion
+      goalSpeed = double.parse(goalSpeed.toStringAsFixed(1));
+
+      debugPrint(
+          'UNIT CONVERSION: $originalGoalSpeed lb/week → $goalSpeed kg/week');
+    } else {
+      // Still round metric values to 1 decimal place for consistency
+      goalSpeed = double.parse(goalSpeed.toStringAsFixed(1));
+      debugPrint(
+          'No unit conversion needed: $goalSpeed kg/week (already metric)');
+    }
+
+    // Set goal speed to 0.0 if goal is maintain - CRITICAL FIX
+    if (isMaintaining) {
+      debugPrint('Goal is "maintain", setting goalSpeed to 0.0');
+      goalSpeed = 0.0;
+    } else {
+      debugPrint('Goal is "$goal", keeping goalSpeed at $goalSpeed');
+    }
+
+    // Clearer debug message showing original and final values
+    if (isImperial) {
+      debugPrint(
+          'Final goal_speed: $goalSpeed kg/week (converted from $originalGoalSpeed lb/week)');
+    } else {
+      debugPrint('Final goal_speed: $goalSpeed kg/week');
+    }
+
+    // Get height using exact same key as weight_height_screen and weight_height_copy_screen
+    int heightCm = prefs.getInt('user_height_cm') ?? 165;
+    debugPrint('Loaded height: $heightCm cm');
+
+    // Update state with loaded values
+    setState(() {
+      userGender = gender;
+      userWeightKg = weightInKg;
+      userHeightCm = heightCm.toDouble();
+      userAge = age;
+      userGoal = goal;
+      goalSpeedKgPerWeek = goalSpeed;
+      dailyCalorieAdjustment =
+          goalSpeed * 1100.0; // Approx 1100 calories per kg
+      userGymGoal = gymGoal ?? "null"; // Handle null case
+      targetCalories = _calculateTargetCalories().toInt();
+      remainingCalories = targetCalories; // Set remaining to target initially
+      isLoading = false;
+    });
+
+    // Log final values with clearer unit information
+    debugPrint('FINAL VALUES:');
+    debugPrint('- Age: $userAge');
+    debugPrint('- Gender: "$userGender"');
+    debugPrint('- Weight: $userWeightKg kg');
+    debugPrint('- Height: $userHeightCm cm');
+    debugPrint('- Goal: "$userGoal"');
+    debugPrint('- Gym Goal: $userGymGoal');
+
+    // Show both imperial and metric values if using imperial
+    if (isImperial) {
+      debugPrint(
+          '- Goal Speed: $goalSpeedKgPerWeek kg/week (equivalent to $originalGoalSpeed lb/week)');
+    } else {
+      debugPrint('- Goal Speed: $goalSpeedKgPerWeek kg/week');
+    }
+
+    debugPrint('- Target Calories: $targetCalories');
   }
 
   // Calculate target calories based on user data
   double _calculateTargetCalories() {
+    // Add debug print to catch test data
+    if (userWeightKg == 65.0 && userHeightCm == 170.0) {
+      print(
+          'WARNING: DETECTED TEST DATA SET! Using fixed values of 65kg and 170cm.');
+      print(
+          'This is likely happening because _setTestUserData() is being called somewhere.');
+
+      // Load real data from SharedPreferences again if needed
+      // Uncomment this to force loading real data:
+      // _loadUserData();
+      // return 0.0; // Return early and let _loadUserData update the state
+    }
+
     // Print input values
-    print('Calculating for:');
-    print('Gender: $userGender');
-    print('Weight: $userWeightKg kg');
-    print('Height: $userHeightCm cm');
-    print('Age: $userAge');
-    print('Goal: $userGoal');
-    print('Goal Speed: $goalSpeedKgPerWeek kg/week');
+    print('CALCULATION INPUTS:');
+    print('- Gender: "$userGender"');
+    print('- Weight: $userWeightKg kg');
+    print('- Height: $userHeightCm cm');
+    print('- Age: $userAge');
+    print('- Goal: "$userGoal"');
+    print('- Goal Speed: $goalSpeedKgPerWeek kg/week');
+    print('- Gym Goal: "$userGymGoal"');
+    if (isImperial) {
+      print('  (Original: $originalGoalSpeed lb/week)');
+    }
 
     // Calculate BMR (Mifflin-St Jeor Formula)
     double bmr;
-    if (userGender == 'Male') {
+    if (userGender == "Female") {
+      bmr = (10 * userWeightKg) + (6.25 * userHeightCm) - (5 * userAge) - 161;
+    } else if (userGender == "Male") {
       bmr = (10 * userWeightKg) + (6.25 * userHeightCm) - (5 * userAge) + 5;
     } else {
-      // Female or Other
+      // Default to female formula for "Other"
       bmr = (10 * userWeightKg) + (6.25 * userHeightCm) - (5 * userAge) - 161;
     }
 
@@ -177,33 +295,59 @@ class _CodiaPageState extends State<CodiaPage> {
         goalSpeedKgPerWeek * 7700; // 7700 kcal ≈ 1kg
     dailyCalorieAdjustment = weeklyCalorieAdjustment / 7;
 
-    // Calculate Final Target Calories based on Goal
+    // Print clear debugging info about the goal and what we're doing
+    print('GOAL PROCESSING:');
+    print('- User goal from SharedPreferences: "$userGoal"');
+    print('- Goal speed from SharedPreferences: $goalSpeedKgPerWeek kg/week');
+
+    // FIX: Calculate Final Target Calories based on Goal correctly
+    // IMPORTANT: Use the exact same approach as in calculation_screen.dart
     double targetCalories;
     if (userGoal == 'lose') {
+      print(
+          '- Goal identified as LOSE WEIGHT - subtracting daily adjustment from TDEE');
       targetCalories = tdee - dailyCalorieAdjustment;
     } else if (userGoal == 'gain') {
+      print(
+          '- Goal identified as GAIN WEIGHT - adding daily adjustment to TDEE');
       targetCalories = tdee + dailyCalorieAdjustment;
     } else {
-      // maintain
+      // maintain - use TDEE directly with no adjustment
+      print(
+          '- Goal identified as MAINTAIN WEIGHT - using TDEE with no adjustment');
       targetCalories = tdee;
+      // For maintain goal, ensure daily adjustment is 0
+      dailyCalorieAdjustment = 0;
     }
 
     // Print calculation steps for debugging
-    print('Calculation Steps:');
-    print('BMR: $bmr');
-    print('Activity Multiplier: $activityMultiplier');
-    print('TDEE (BMR * Activity): $tdee');
-    print('Weekly Calorie Adjustment: $weeklyCalorieAdjustment');
-    print('Daily Calorie Adjustment: $dailyCalorieAdjustment');
-    print('Target Calories: $targetCalories');
+    print('CALCULATION STEPS:');
+    print('- BMR: $bmr calories/day');
+    print('- Activity Multiplier: $activityMultiplier');
+    print('- TDEE (BMR * Activity): $tdee calories/day');
+    print(
+        '- Weekly Calorie Adjustment: ${weeklyCalorieAdjustment.toStringAsFixed(0)} calories (${goalSpeedKgPerWeek.toStringAsFixed(1)} kg × 7700)');
+    print(
+        '- Daily Calorie Adjustment: ${dailyCalorieAdjustment.toStringAsFixed(0)} calories/day');
+    print(
+        '- Target Calories (before minimum): ${targetCalories.toStringAsFixed(0)} calories/day');
 
     // Set a minimum healthy calorie limit
-    double minimumCalories = userGender == 'Male' ? 1500 : 1200;
+    double minimumCalories = userGender == "Male" ? 1500 : 1200;
     if (targetCalories < minimumCalories && userGoal == 'lose') {
       print(
-          'Warning: Calculated target below minimum. Setting to $minimumCalories calories');
+          '- Warning: Calculated target below minimum. Using $minimumCalories calories/day instead');
       targetCalories = minimumCalories;
     }
+
+    // Final debug statement to confirm actual values used in calculation
+    debugPrint('FINAL CALCULATION RESULT:');
+    debugPrint('- Weight: $userWeightKg kg');
+    debugPrint('- Height: $userHeightCm cm');
+    debugPrint('- Age: $userAge');
+    debugPrint('- Gender: "$userGender"');
+    debugPrint('- Goal: "$userGoal"');
+    debugPrint('- Target Calories: ${targetCalories.toInt()} calories/day');
 
     return targetCalories;
   }
@@ -393,10 +537,8 @@ class _CodiaPageState extends State<CodiaPage> {
                       Expanded(
                         child: GestureDetector(
                           onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const FoodCardOpen()),
-                            );
+                            // Removed navigation to FoodCardOpen
+                            // No functionality for now
                           },
                           child: Container(
                             padding: EdgeInsets.symmetric(vertical: 12),
@@ -439,38 +581,49 @@ class _CodiaPageState extends State<CodiaPage> {
 
                       // Coach button
                       Expanded(
-                        child: Container(
-                          padding: EdgeInsets.symmetric(vertical: 12),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 4,
-                                offset: Offset(0, 2),
+                        child: GestureDetector(
+                          onTap: () {
+                            // Navigate to Coach screen
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => CoachScreen(),
                               ),
-                            ],
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Image.asset(
-                                'assets/images/coach.png',
-                                width: 24,
-                                height: 24,
-                              ),
-                              SizedBox(width: 14),
-                              Text(
-                                'Coach',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.black,
-                                  decoration: TextDecoration.none,
+                            );
+                          },
+                          child: Container(
+                            padding: EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.05),
+                                  blurRadius: 4,
+                                  offset: Offset(0, 2),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Image.asset(
+                                  'assets/images/coach.png',
+                                  width: 24,
+                                  height: 24,
+                                ),
+                                SizedBox(width: 14),
+                                Text(
+                                  'Coach',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.black,
+                                    decoration: TextDecoration.none,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -568,7 +721,8 @@ class _CodiaPageState extends State<CodiaPage> {
                                             horizontal: 6.6, vertical: 2.2),
                                         decoration: BoxDecoration(
                                           color: Color(0xFFF2F2F2),
-                                          borderRadius: BorderRadius.circular(11),
+                                          borderRadius:
+                                              BorderRadius.circular(11),
                                         ),
                                         child: Text(
                                           '12:07',
@@ -583,7 +737,8 @@ class _CodiaPageState extends State<CodiaPage> {
                                     ],
                                   ),
 
-                                  SizedBox(height: 7), // Increased by 15% from 6
+                                  SizedBox(
+                                      height: 7), // Increased by 15% from 6
 
                                   // Calories
                                   Row(
@@ -754,7 +909,8 @@ class _CodiaPageState extends State<CodiaPage> {
                                     ],
                                   ),
 
-                                  SizedBox(height: 7), // Increased by 15% from 6
+                                  SizedBox(
+                                      height: 7), // Increased by 15% from 6
 
                                   // Calories
                                   Row(
@@ -929,8 +1085,104 @@ class _CodiaPageState extends State<CodiaPage> {
   }
 
   Widget _buildCalorieCard() {
-    // Calculate exact target calories
-    double targetCalories = _calculateTargetCalories();
+    // Don't recalculate here - use the value calculated in _loadUserData
+    double caloriesToShow = targetCalories.toDouble();
+
+    // Calculate TDEE for maintenance display
+    double bmr;
+    if (userGender == "Female") {
+      bmr = (10 * userWeightKg) + (6.25 * userHeightCm) - (5 * userAge) - 161;
+    } else if (userGender == "Male") {
+      bmr = (10 * userWeightKg) + (6.25 * userHeightCm) - (5 * userAge) + 5;
+    } else {
+      // Default to female formula for "Other"
+      bmr = (10 * userWeightKg) + (6.25 * userHeightCm) - (5 * userAge) - 161;
+    }
+    double activityMultiplier = 1.2; // Assuming sedentary as default
+    double maintenanceCalories = bmr * activityMultiplier;
+
+    // When goal is maintain, ensure deficit shows same value as remaining calories
+    if (userGoal == 'maintain') {
+      maintenanceCalories = caloriesToShow;
+    }
+
+    // Define macro distribution based on gym goal
+    Map<String, Map<String, double>> macroTargets = {
+      "Build Muscle": {
+        "proteinPercent": 0.32,
+        "carbPercent": 0.45,
+        "fatPercent": 0.23,
+      },
+      "Gain Strength": {
+        "proteinPercent": 0.28,
+        "carbPercent": 0.42,
+        "fatPercent": 0.30,
+      },
+      "Boost Endurance": {
+        "proteinPercent": 0.18,
+        "carbPercent": 0.60,
+        "fatPercent": 0.22,
+      },
+      // Default balanced macros when no gym goal is selected
+      "null": {
+        "proteinPercent": 0.25,
+        "carbPercent": 0.50,
+        "fatPercent": 0.25,
+      }
+    };
+
+    // Get the macro distribution for the selected gym goal (default to balanced macros if null or not found)
+    debugPrint('Using gym goal for macros: "$userGymGoal"');
+    Map<String, double> selectedMacros =
+        macroTargets["null"]!; // Default to balanced macros
+
+    // Only try to use userGymGoal if it's a valid key in the map - EXACTLY like in calculation_screen.dart
+    String goalKey = userGymGoal ?? "null";
+    if (macroTargets.containsKey(goalKey)) {
+      selectedMacros = macroTargets[goalKey]!;
+      print('Using macro distribution for: "$goalKey"');
+    } else {
+      print(
+          'No matching macro distribution for: "$goalKey", using balanced default');
+    }
+
+    // Calculate macronutrient targets based on calorie goal and gym goal
+    double proteinPercent = selectedMacros["proteinPercent"]!;
+    double carbPercent = selectedMacros["carbPercent"]!;
+    double fatPercent = selectedMacros["fatPercent"]!;
+
+    // Log the selected macro distribution exactly like calculation_screen.dart
+    print('Using macro distribution for gym goal: "$userGymGoal"');
+    print('- Protein: ${(proteinPercent * 100).toStringAsFixed(1)}%');
+    print('- Carbs: ${(carbPercent * 100).toStringAsFixed(1)}%');
+    print('- Fat: ${(fatPercent * 100).toStringAsFixed(1)}%');
+
+    // Calculate macro targets in grams
+    int proteinTarget = ((caloriesToShow * proteinPercent) / 4).round();
+    int fatTarget = ((caloriesToShow * fatPercent) / 9).round();
+    int carbTarget = ((caloriesToShow * carbPercent) / 4).round();
+
+    // Log the calculations with the exact same format as calculation_screen.dart
+    print('Calculated macro targets for $caloriesToShow calories:');
+    print(
+        '- Protein: ${proteinTarget}g (${(caloriesToShow * proteinPercent).round()} kcal)');
+    print(
+        '- Fat: ${fatTarget}g (${(caloriesToShow * fatPercent).round()} kcal)');
+    print(
+        '- Carbs: ${carbTarget}g (${(caloriesToShow * carbPercent).round()} kcal)');
+    print(
+        '- Total: ${((caloriesToShow * proteinPercent) + (caloriesToShow * fatPercent) + (caloriesToShow * carbPercent)).round()} kcal');
+
+    // Set current intake to 0 until user logs food
+    int currentProtein = 0;
+    int currentFat = 0;
+    int currentCarb = 0;
+
+    // If we're still loading or have 0 calories, show a loading indicator
+    if (isLoading || targetCalories == 0) {
+      print('Loading calorie data or no calories calculated yet');
+      // We could return a loading indicator here if needed
+    }
 
     return Container(
       height: 220,
@@ -953,11 +1205,11 @@ class _CodiaPageState extends State<CodiaPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              // Deficit
+              // Deficit (now showing maintenance calories)
               Column(
                 children: [
                   Text(
-                    '-${userGoal == 'lose' ? dailyCalorieAdjustment.round() : 0}',
+                    '-${maintenanceCalories.round()}',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -1001,7 +1253,7 @@ class _CodiaPageState extends State<CodiaPage> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          targetCalories.toStringAsFixed(
+                          caloriesToShow.toStringAsFixed(
                               0), // Display exact value without decimal points
                           style: TextStyle(
                             fontSize: 20,
@@ -1077,7 +1329,8 @@ class _CodiaPageState extends State<CodiaPage> {
                       color: Color(0xFFEEEEEE),
                     ),
                     child: FractionallySizedBox(
-                      widthFactor: 0.5, // 50% progress
+                      widthFactor:
+                          currentProtein / proteinTarget, // Dynamic progress
                       alignment: Alignment.centerLeft,
                       child: Container(
                         decoration: BoxDecoration(
@@ -1089,7 +1342,7 @@ class _CodiaPageState extends State<CodiaPage> {
                   ),
                   SizedBox(height: 4),
                   Text(
-                    '60 / 120 g',
+                    '$currentProtein / $proteinTarget g',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
@@ -1120,7 +1373,7 @@ class _CodiaPageState extends State<CodiaPage> {
                       color: Color(0xFFEEEEEE),
                     ),
                     child: FractionallySizedBox(
-                      widthFactor: 0.5, // 50% progress
+                      widthFactor: currentFat / fatTarget, // Dynamic progress
                       alignment: Alignment.centerLeft,
                       child: Container(
                         decoration: BoxDecoration(
@@ -1132,7 +1385,7 @@ class _CodiaPageState extends State<CodiaPage> {
                   ),
                   SizedBox(height: 4),
                   Text(
-                    '32 / 64 g',
+                    '$currentFat / $fatTarget g',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
@@ -1163,7 +1416,7 @@ class _CodiaPageState extends State<CodiaPage> {
                       color: Color(0xFFEEEEEE),
                     ),
                     child: FractionallySizedBox(
-                      widthFactor: 0.5, // 50% progress
+                      widthFactor: currentCarb / carbTarget, // Dynamic progress
                       alignment: Alignment.centerLeft,
                       child: Container(
                         decoration: BoxDecoration(
@@ -1175,7 +1428,7 @@ class _CodiaPageState extends State<CodiaPage> {
                   ),
                   SizedBox(height: 4),
                   Text(
-                    '125 / 250 g',
+                    '$currentCarb / $carbTarget g',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
