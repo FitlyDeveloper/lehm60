@@ -61,7 +61,6 @@ class _WeightLiftingState extends State<WeightLifting> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(15),
-                  border: Border.all(color: Colors.grey[300]!),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.05),
@@ -120,10 +119,10 @@ class _WeightLiftingState extends State<WeightLifting> {
                 children: [
                   Expanded(
                     child: Container(
+                      height: 90,
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(15),
-                        border: Border.all(color: Colors.grey[300]!),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.05),
@@ -139,28 +138,27 @@ class _WeightLiftingState extends State<WeightLifting> {
                             // Handle add routine
                           },
                           borderRadius: BorderRadius.circular(15),
-                          child: Padding(
-                            padding: EdgeInsets.all(16),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              children: [
-                                Icon(
-                                  Icons.format_list_bulleted,
-                                  size: 20,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Image.asset(
+                                'assets/images/clipboard.png',
+                                width: 24,
+                                height: 24,
+                                fit: BoxFit.contain,
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                'Add Routine',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
                                   color: Colors.black,
+                                  fontFamily: 'SF Pro Display',
                                 ),
-                                SizedBox(width: 12),
-                                Text(
-                                  'Add Routine',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.black,
-                                    fontFamily: 'SF Pro Display',
-                                  ),
-                                ),
-                              ],
-                            ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -169,10 +167,10 @@ class _WeightLiftingState extends State<WeightLifting> {
                   SizedBox(width: 16),
                   Expanded(
                     child: Container(
+                      height: 90,
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(15),
-                        border: Border.all(color: Colors.grey[300]!),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.05),
@@ -188,28 +186,27 @@ class _WeightLiftingState extends State<WeightLifting> {
                             // Handle routines for you
                           },
                           borderRadius: BorderRadius.circular(15),
-                          child: Padding(
-                            padding: EdgeInsets.all(16),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              children: [
-                                Icon(
-                                  Icons.person_outline,
-                                  size: 20,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Image.asset(
+                                'assets/images/profile.png',
+                                width: 24,
+                                height: 24,
+                                fit: BoxFit.contain,
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                'Routines For You',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
                                   color: Colors.black,
+                                  fontFamily: 'SF Pro Display',
                                 ),
-                                SizedBox(width: 12),
-                                Text(
-                                  'Routines For You',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.black,
-                                    fontFamily: 'SF Pro Display',
-                                  ),
-                                ),
-                              ],
-                            ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -218,47 +215,36 @@ class _WeightLiftingState extends State<WeightLifting> {
                 ],
               ),
               SizedBox(height: 16),
-              // My Routines Dropdown
-              IntrinsicWidth(
+              // My Routines Button
+              Align(
+                alignment: Alignment.centerLeft,
                 child: Container(
                   height: 36,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Color(0xFFEEEEEE),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.grey[300]!),
                   ),
-                  child: Theme(
-                    data: Theme.of(context).copyWith(
-                      dividerColor: Colors.transparent,
-                    ),
-                    child: ExpansionTile(
-                      tilePadding: EdgeInsets.symmetric(horizontal: 14, vertical: 0),
-                      title: Text(
-                        'My Routines (1)',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.black,
-                          fontFamily: 'SF Pro Display',
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'My Routines (1)',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.black,
+                            fontFamily: 'SF Pro Display',
+                          ),
                         ),
-                      ),
-                      trailing: Icon(
-                        Icons.keyboard_arrow_down_rounded,
-                        size: 14,
-                        color: Colors.black,
-                      ),
-                      iconColor: Colors.black,
-                      collapsedIconColor: Colors.black,
-                      backgroundColor: Colors.transparent,
-                      collapsedBackgroundColor: Colors.transparent,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      collapsedShape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      children: [],
-                      maintainState: true,
+                        SizedBox(width: 4),
+                        Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          size: 12,
+                          color: Colors.black,
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -271,7 +257,6 @@ class _WeightLiftingState extends State<WeightLifting> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(15),
-                  border: Border.all(color: Colors.grey[300]!),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.05),
