@@ -54,172 +54,184 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
           ),
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          child: Stack(
+            children: [
+              // Main content without back button
+              SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                // Header with back button and title
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 29)
-                      .copyWith(top: 16, bottom: 8.5),
-              child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                      // Back button (styled like signin.dart - simple IconButton)
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back,
-                            color: Colors.black, size: 24),
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                        padding: EdgeInsets.zero,
-                        constraints: BoxConstraints(),
-                      ),
+                    // Header with title only (no back button)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 29)
+                          .copyWith(top: 16, bottom: 8.5),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          // Empty space where back button would be
+                          SizedBox(width: 24),
 
-                      // Memories title (sized like 'Today' text but centered position)
-                    Text(
-                        'Memories',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'SF Pro Display',
-                          color: Colors.black,
-                          decoration: TextDecoration.none,
+                          // Memories title (sized like 'Today' text but centered position)
+                          Text(
+                            'Memories',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'SF Pro Display',
+                              color: Colors.black,
+                              decoration: TextDecoration.none,
+                            ),
+                          ),
+
+                          // Empty space to balance the header
+                          SizedBox(width: 24),
+                        ],
+                      ),
+                    ),
+
+                    // Slim gray divider line
+                    Container(
+                      margin: EdgeInsets.symmetric(horizontal: 29),
+                      height: 0.5,
+                      color: Color(0xFFBDBDBD),
+                    ),
+
+                    // Current Month Calendar
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 29)
+                          .copyWith(top: 20, bottom: 0),
+                      child: Container(
+                        padding: EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 10,
+                              offset: Offset(0, 5),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            // Month header
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Text(
+                                _getMonthName(_currentMonth),
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ),
+
+                            // Weekday headers
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                _buildWeekdayHeader('Mon'),
+                                _buildWeekdayHeader('Tue'),
+                                _buildWeekdayHeader('Wed'),
+                                _buildWeekdayHeader('Thu'),
+                                _buildWeekdayHeader('Fri'),
+                                _buildWeekdayHeader('Sat'),
+                                _buildWeekdayHeader('Sun'),
+                              ],
+                            ),
+
+                            SizedBox(height: 8),
+
+                            // Calendar days
+                            _buildCalendarGrid(_daysInCurrentMonth,
+                                _today), // Current month with today highlighted
+                          ],
                         ),
                       ),
+                    ),
 
-                      // Empty space to balance the header (same width as back button)
-                      SizedBox(width: 24),
+                    // Previous Month Calendar
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 29)
+                          .copyWith(top: 15, bottom: 6),
+                      child: Container(
+                        padding: EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 10,
+                              offset: Offset(0, 5),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            // Month header
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Text(
+                                _getMonthName(_previousMonthNum),
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ),
+
+                            // Weekday headers
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                _buildWeekdayHeader('Mon'),
+                                _buildWeekdayHeader('Tue'),
+                                _buildWeekdayHeader('Wed'),
+                                _buildWeekdayHeader('Thu'),
+                                _buildWeekdayHeader('Fri'),
+                                _buildWeekdayHeader('Sat'),
+                                _buildWeekdayHeader('Sun'),
+                              ],
+                            ),
+
+                            SizedBox(height: 8),
+
+                            // Calendar days
+                            _buildCalendarGrid(_daysInPreviousMonth,
+                                null), // Previous month, no highlight
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // Add space at the bottom
+                    SizedBox(height: 90),
                   ],
                 ),
               ),
 
-                // Slim gray divider line
-                Container(
-                  margin: EdgeInsets.symmetric(horizontal: 29),
-                  height: 0.5,
-                  color: Color(0xFFBDBDBD),
+              // Back button as a standalone element with absolute positioning
+              Positioned(
+                left: 29,
+                top: 21, // Changed from 20 to 21 to move down by 1px
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back,
+                      color: Colors.black, size: 24),
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  padding: EdgeInsets.zero,
+                  constraints: BoxConstraints(),
                 ),
-
-                // Current Month Calendar
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 29)
-                      .copyWith(top: 20, bottom: 0),
-                        child: Container(
-                    padding: EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 10,
-                          offset: Offset(0, 5),
-                      ),
-                    ],
-                  ),
-              child: Column(
-                children: [
-                        // Month header
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: Text(
-                            _getMonthName(_currentMonth),
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.black,
-                          ),
-                        ),
-                      ),
-
-                        // Weekday headers
-                  Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                            _buildWeekdayHeader('Mon'),
-                            _buildWeekdayHeader('Tue'),
-                            _buildWeekdayHeader('Wed'),
-                            _buildWeekdayHeader('Thu'),
-                            _buildWeekdayHeader('Fri'),
-                            _buildWeekdayHeader('Sat'),
-                            _buildWeekdayHeader('Sun'),
-                          ],
-                        ),
-
-                        SizedBox(height: 8),
-
-                        // Calendar days
-                        _buildCalendarGrid(_daysInCurrentMonth,
-                            _today), // Current month with today highlighted
-                      ],
-                    ),
-                  ),
-                ),
-
-                // Previous Month Calendar
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 29)
-                      .copyWith(top: 15, bottom: 6),
-                        child: Container(
-                    padding: EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 10,
-                          offset: Offset(0, 5),
-                      ),
-                    ],
-                  ),
-              child: Column(
-                children: [
-                        // Month header
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: Text(
-                            _getMonthName(_previousMonthNum),
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.black,
-                          ),
-                        ),
-                      ),
-
-                        // Weekday headers
-                  Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                            _buildWeekdayHeader('Mon'),
-                            _buildWeekdayHeader('Tue'),
-                            _buildWeekdayHeader('Wed'),
-                            _buildWeekdayHeader('Thu'),
-                            _buildWeekdayHeader('Fri'),
-                            _buildWeekdayHeader('Sat'),
-                            _buildWeekdayHeader('Sun'),
-                          ],
-                        ),
-
-                        SizedBox(height: 8),
-
-                        // Calendar days
-                        _buildCalendarGrid(_daysInPreviousMonth,
-                            null), // Previous month, no highlight
-                      ],
-                    ),
-                  ),
-                ),
-
-                // Add space at the bottom
-                SizedBox(height: 90),
-              ],
-            ),
-                          ),
-                        ),
-                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -259,7 +271,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
         shape: BoxShape.rectangle,
       ),
       child: Center(
-                          child: Text(
+        child: Text(
           day.toString(),
           style: TextStyle(
             fontSize: 14,
