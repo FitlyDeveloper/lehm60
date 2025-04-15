@@ -274,11 +274,11 @@ class _CoachScreenState extends State<CoachScreen>
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 29)
                           .copyWith(top: 16, bottom: 8.5),
-                      child: Stack(
-                        children: [
+              child: Stack(
+                children: [
                           // Back button
-                          Positioned(
-                            left: 0,
+                  Positioned(
+                    left: 0,
                             top: 22,
                             child: IconButton(
                               icon: const Icon(Icons.arrow_back,
@@ -306,10 +306,10 @@ class _CoachScreenState extends State<CoachScreen>
                               SizedBox(width: 8),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
                                   Text(
-                                    'Coach',
+                            'Coach',
                                     style: TextStyle(
                                       fontSize: 24,
                                       fontWeight: FontWeight.bold,
@@ -318,8 +318,8 @@ class _CoachScreenState extends State<CoachScreen>
                                       decoration: TextDecoration.none,
                                     ),
                                     maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                                   SizedBox(height: 1.6),
                                   Text(
                                     'Active now',
@@ -331,8 +331,8 @@ class _CoachScreenState extends State<CoachScreen>
                                       fontWeight: FontWeight.normal,
                                     ),
                                     maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                                 ],
                               ),
                             ],
@@ -384,8 +384,8 @@ class _CoachScreenState extends State<CoachScreen>
                                         elevation: 0,
                                         borderRadius: BorderRadius.circular(20),
                                         color: Colors.white,
-                                        child: Container(
-                                          decoration: BoxDecoration(
+                    child: Container(
+                      decoration: BoxDecoration(
                                             borderRadius:
                                                 BorderRadius.circular(20),
                                             color: Colors.white,
@@ -433,7 +433,7 @@ class _CoachScreenState extends State<CoachScreen>
                                           _copyToClipboard(message.text),
                                       child: Material(
                                         elevation: 0,
-                                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(20),
                                         color: message.isFromUser
                                             ? Colors.black
                                             : Colors.white,
@@ -486,7 +486,7 @@ class _CoachScreenState extends State<CoachScreen>
                 // Input area below chat (fixed, non-scrolling)
                 Column(
                   mainAxisSize: MainAxisSize.min,
-                  children: [
+                          children: [
                     // Example text if needed
                     if (_showExample)
                       Padding(
@@ -571,12 +571,12 @@ class _CoachScreenState extends State<CoachScreen>
                       ),
                     ),
                   ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
     );
   }
 

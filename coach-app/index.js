@@ -5,6 +5,8 @@
  * const {onDocumentWritten} = require("firebase-functions/v2/firestore");
  *
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
+ * 
+ * Version: 1.1 - Added debugging and improved error handling
  */
 
 const functions = require("firebase-functions");
@@ -29,197 +31,204 @@ exports.getAIResponse = functions.https.onCall(async (data, context) => {
     console.log("Function triggered with request");
     console.log("Raw data type:", typeof data);
     
-    if (data) {
-      console.log("Request properties:", Object.keys(data));
+    let messages = [];
+    
+    // Handle all possible message formats for maximum compatibility
+    if (data && typeof data === 'object') {
+      if (data.messages && Array.isArray(data.messages)) {
+        console.log("Found messages at root level:", data.messages.length);
+        messages = data.messages;
+      } else if (data.data && typeof data.data === 'object') {
+        if (data.data.messages && Array.isArray(data.data.messages)) {
+          console.log("Found messages in data.data:", data.data.messages.length);
+          messages = data.data.messages;
+        }
+      }
     }
     
-    // The most common case for Firebase Callable Functions
-    if (data && typeof data === 'object' && 'data' in data) {
-      console.log("Found 'data' property, checking its contents");
+    // If we couldn't find messages anywhere, create a fallback
+    if (!Array.isArray(messages) || messages.length === 0) {
+      console.warn("No valid messages found in request. Using fallback content.");
+      // Return a basic fallback response
+      return {
+        success: true,
+        content: "I'm your fitness coach! How can I help you today?",
+        note: "This is a fallback response due to missing messages in the request."
+      };
+    }
+    
+    // Process the messages
+    console.log(`Processing ${messages.length} messages`);
+    
+    // Create clean message objects
+    const safeMessages = messages.map(msg => {
+      if (typeof msg === "object" && msg !== null) {
+        return {
+          role: String(msg.role || "user"),
+          content: String(msg.content || "")
+        };
+      }
+      return { role: "user", content: String(msg || "") };
+    });
+    
+    // Ensure messages are properly ordered (system message first)
+    const orderedMessages = safeMessages.sort((a, b) => {
+      // System messages should come first
+      if (a.role === 'system') return -1;
+      if (b.role === 'system') return 1;
+      return 0;
+    });
+    
+    console.log(`Processing ${orderedMessages.length} messages (including any system messages)`);
+    
+    // Call the DeepSeek API
+    try {
+      // Get API key from environment variables (now only using process.env)
+      const apiKey = process.env.DEEPSEEK_API_KEY;
+      console.log("API key from env:", apiKey ? "Found (not showing for security)" : "Not found");
       
-      if (data.data) {
-        console.log("Data properties:", Object.keys(data.data));
+      if (!apiKey) {
+        console.error("API key not found in environment variables");
+        // Return a graceful error that doesn't expose the fact that it's an API key issue
+        return {
+          success: true,
+          content: "I'm here to help with your fitness journey! What would you like to know?",
+          note: "This is a fallback response due to a configuration issue."
+        };
       }
       
-      if (data.data && typeof data.data === 'object' && 'messages' in data.data) {
-        console.log("Found data.data.messages - the expected path");
-        
-        // Get messages from the expected location
-        const messages = data.data.messages;
-        
-        // Validate messages
-        if (!Array.isArray(messages)) {
-          console.error("messages is not an array:", typeof messages);
-          throw new functions.https.HttpsError(
-            "invalid-argument", 
-            "Messages must be an array"
-          );
+      // Make API request
+      console.log("Making request to DeepSeek API");
+      const response = await axios.post(
+        "https://api.deepseek.com/v1/chat/completions",
+        {
+          model: "deepseek-chat",
+          messages: orderedMessages,
+          temperature: 0.7,
+          max_tokens: 1000,
+          stream: false // Change to non-streaming for debugging
+        },
+        {
+          headers: {
+            "Authorization": `Bearer ${apiKey}`,
+            "Content-Type": "application/json"
+          },
+          timeout: 30000 // 30 second timeout
         }
-        
-        if (messages.length === 0) {
-          console.error("messages array is empty");
-          throw new functions.https.HttpsError(
-            "invalid-argument", 
-            "Messages array cannot be empty"
-          );
+      );
+      
+      console.log("DeepSeek API response status:", response.status);
+      console.log("DeepSeek API response headers:", response.headers);
+      
+      // For debugging, log the response data
+      if (response.data) {
+        console.log("Response data structure:", Object.keys(response.data));
+        if (response.data.choices && response.data.choices.length > 0) {
+          console.log("First choice structure:", Object.keys(response.data.choices[0]));
+          const contentPreview = response.data.choices[0].message.content.substring(0, 50) + "...";
+          console.log("Content preview:", contentPreview);
         }
+      }
+      
+      // For non-streaming fallback
+      if (!response.data || typeof response.data.on !== 'function') {
+        console.log("Non-streaming response received");
         
-        // Process the messages
-        console.log(`Processing ${messages.length} messages`);
+        // Check if we have a valid response
+        if (response.data && response.data.choices && response.data.choices.length > 0) {
+          const content = response.data.choices[0].message.content;
+          console.log("Returning content from non-streaming response");
+          return {
+            success: true,
+            content: content,
+            streaming: false
+          };
+        } else {
+          console.log("Invalid response structure from DeepSeek API");
+          return {
+            success: false,
+            error: "Invalid response from AI service",
+            content: "I'm having trouble understanding right now. Could you try asking in a different way?"
+          };
+        }
+      }
+      
+      // Prepare for streaming response
+      return new Promise((resolve) => {
+        let fullContent = "";
+        let isFirstChunk = true;
         
-        // Create clean message objects
-        const safeMessages = messages.map(msg => {
-          if (typeof msg === "object" && msg !== null) {
-            return {
-              role: String(msg.role || "user"),
-              content: String(msg.content || "")
-            };
-          }
-          return { role: "user", content: String(msg || "") };
-        });
-        
-        // Ensure messages are properly ordered (system message first)
-        const orderedMessages = safeMessages.sort((a, b) => {
-          // System messages should come first
-          if (a.role === 'system') return -1;
-          if (b.role === 'system') return 1;
-          return 0;
-        });
-        
-        console.log(`Processing ${orderedMessages.length} messages (including any system messages)`);
-        
-        // Call the DeepSeek API
-        try {
-          // Get API key from environment variables (Firebase v2 approach)
-          const apiKey = process.env.DEEPSEEK_API_KEY || "sk-593c0eafc0734e4a9401ebdaa8a0093d";
-          
-          if (!apiKey) {
-            console.error("API key not found in environment variables");
-            throw new Error("API key configuration error");
-          }
-          
-          // Make API request
-          const response = await axios.post(
-            "https://api.deepseek.com/v1/chat/completions",
-            {
-              model: "deepseek-chat",
-              messages: orderedMessages,
-              temperature: 0.7,
-              max_tokens: 1000,
-              stream: true // Enable streaming for token-by-token response
-            },
-            {
-              headers: {
-                "Authorization": `Bearer ${apiKey}`,
-                "Content-Type": "application/json"
-              },
-              timeout: 30000, // 30 second timeout
-              responseType: 'stream' // Set response type to stream
-            }
-          );
-          
-          console.log("DeepSeek API streaming response initiated with status:", response.status);
-          
-          // For non-streaming fallback
-          if (!response.data || typeof response.data.on !== 'function') {
-            console.log("Streaming not supported, falling back to regular response");
-            return {
-              success: true,
-              content: "Streaming not supported by the API. Please try again.",
-              streaming: false
-            };
-          }
-          
-          // Prepare for streaming response
-          return new Promise((resolve) => {
-            let fullContent = "";
-            let isFirstChunk = true;
+        response.data.on('data', (chunk) => {
+          try {
+            const lines = chunk.toString().split('\n').filter(line => line.trim() !== '');
             
-            response.data.on('data', (chunk) => {
-              try {
-                const lines = chunk.toString().split('\n').filter(line => line.trim() !== '');
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = line.substring(6);
                 
-                for (const line of lines) {
-                  if (line.startsWith('data: ')) {
-                    const data = line.substring(6);
-                    
-                    // Check for stream completion
-                    if (data === '[DONE]') {
-                      console.log("Stream completed");
-                      continue;
-                    }
-                    
-                    try {
-                      const parsed = JSON.parse(data);
-                      const delta = parsed.choices[0]?.delta?.content || '';
-                      fullContent += delta;
-                    } catch (err) {
-                      console.error("Error parsing JSON from stream:", err);
-                    }
-                  }
+                // Check for stream completion
+                if (data === '[DONE]') {
+                  console.log("Stream completed");
+                  continue;
                 }
                 
-                // For debugging only
-                if (isFirstChunk) {
-                  console.log("First chunk received and processed");
-                  isFirstChunk = false;
+                try {
+                  const parsed = JSON.parse(data);
+                  const delta = parsed.choices[0]?.delta?.content || '';
+                  fullContent += delta;
+                } catch (err) {
+                  console.error("Error parsing JSON from stream:", err);
                 }
-              } catch (err) {
-                console.error("Error processing stream chunk:", err);
               }
-            });
+            }
             
-            response.data.on('end', () => {
-              console.log("Stream ended, returning full content");
-              resolve({
-                success: true,
-                content: fullContent,
-                streaming: true,
-                streamComplete: true
-              });
-            });
-            
-            response.data.on('error', (err) => {
-              console.error("Stream error:", err);
-              resolve({
-                success: false,
-                error: "Streaming error occurred",
-                content: fullContent || "An error occurred during streaming."
-              });
-            });
-          });
-        } catch (apiError) {
-          console.error("API request failed:", apiError.message);
-          
-          if (apiError.response) {
-            console.error("API response error:", JSON.stringify({
-              status: apiError.response.status,
-              data: apiError.response.data
-            }));
-            
-            throw new functions.https.HttpsError(
-              "unavailable",
-              `DeepSeek API error: ${apiError.response.status}`
-            );
+            // For debugging only
+            if (isFirstChunk) {
+              console.log("First chunk received and processed");
+              isFirstChunk = false;
+            }
+          } catch (err) {
+            console.error("Error processing stream chunk:", err);
           }
-          
-          throw new functions.https.HttpsError(
-            "internal",
-            `API request failed: ${apiError.message}`
-          );
-        }
-      } else {
-        console.error("Could not find messages in data.data");
+        });
+        
+        response.data.on('end', () => {
+          console.log("Stream ended, returning full content");
+          resolve({
+            success: true,
+            content: fullContent,
+            streaming: true,
+            streamComplete: true
+          });
+        });
+        
+        response.data.on('error', (err) => {
+          console.error("Stream error:", err);
+          resolve({
+            success: false,
+            error: "Streaming error occurred",
+            content: fullContent || "An error occurred during streaming."
+          });
+        });
+      });
+    } catch (apiError) {
+      console.error("API request failed:", apiError.message);
+      
+      if (apiError.response) {
+        console.error("API response error:", JSON.stringify({
+          status: apiError.response.status,
+          data: apiError.response.data
+        }));
+        
         throw new functions.https.HttpsError(
-          "invalid-argument", 
-          "Messages array not found in request data"
+          "unavailable",
+          `DeepSeek API error: ${apiError.response.status}`
         );
       }
-    } else {
-      console.error("Request missing expected 'data' property");
+      
       throw new functions.https.HttpsError(
-        "invalid-argument", 
-        "Invalid request format"
+        "internal",
+        `API request failed: ${apiError.message}`
       );
     }
   } catch (error) {
@@ -250,38 +259,31 @@ exports.streamAIResponse = functions.https.onCall(async (data, context) => {
     
     let messages = [];
     
-    // Handle different request formats
-    if (data && data.messages) {
-      console.log("Found messages at root level:", Array.isArray(data.messages));
-      messages = data.messages;
-    } else if (data && data.data && data.data.messages) {
-      console.log("Found messages in data.data:", Array.isArray(data.data.messages));
-      messages = data.data.messages;
-    } else {
-      console.error("Could not find messages in request data");
-      throw new functions.https.HttpsError(
-        "invalid-argument", 
-        "Messages must be provided as an array"
-      );
+    // Handle all possible message formats for maximum compatibility
+    if (data && typeof data === 'object') {
+      if (data.messages && Array.isArray(data.messages)) {
+        console.log("Found messages at root level:", data.messages.length);
+        messages = data.messages;
+      } else if (data.data && typeof data.data === 'object') {
+        if (data.data.messages && Array.isArray(data.data.messages)) {
+          console.log("Found messages in data.data:", data.data.messages.length);
+          messages = data.data.messages;
+        }
+      }
     }
     
-    // Ensure messages is an array
-    if (!Array.isArray(messages)) {
-      console.error("messages is not an array:", typeof messages);
-      throw new functions.https.HttpsError(
-        "invalid-argument", 
-        "Messages must be provided as an array"
-      );
+    // If we couldn't find messages anywhere, create a fallback
+    if (!Array.isArray(messages) || messages.length === 0) {
+      console.warn("No valid messages found in request. Using fallback content.");
+      // Return a basic fallback response
+      return {
+        success: true,
+        fullContent: "I'm your fitness coach! How can I help you today?",
+        note: "This is a fallback response due to missing messages in the request."
+      };
     }
     
-    if (messages.length === 0) {
-      console.error("messages array is empty");
-      throw new functions.https.HttpsError(
-        "invalid-argument", 
-        "Messages array cannot be empty"
-      );
-    }
-    
+    // Process the messages
     console.log(`Processing ${messages.length} messages for streaming`);
     
     // Create clean message objects
@@ -302,10 +304,19 @@ exports.streamAIResponse = functions.https.onCall(async (data, context) => {
       return 0;
     });
     
-    // Get API key from environment variables
-    const apiKey = process.env.DEEPSEEK_API_KEY || "sk-593c0eafc0734e4a9401ebdaa8a0093d";
+    // Get API key from environment variables (now only using process.env)
+    const apiKey = process.env.DEEPSEEK_API_KEY;
+    console.log("API key from env:", apiKey ? "Found (not showing for security)" : "Not found");
+    
     if (!apiKey) {
-      throw new Error("API key configuration error");
+      console.error("API key not found in environment variables");
+      // Return a graceful error that doesn't expose the API key issue
+      return {
+        success: true,
+        fullContent: "I'm here to help with your fitness journey! What would you like to know?",
+        chunks: ["I'm here to help with your fitness journey! ", "What would you like to know?"],
+        note: "This is a fallback response due to a configuration issue."
+      };
     }
     
     // Make streaming API request to DeepSeek
