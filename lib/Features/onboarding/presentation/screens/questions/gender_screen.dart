@@ -151,14 +151,11 @@ class _GenderScreenState extends State<GenderScreen> {
             left: 0,
             right: 0,
             bottom: 0,
-            height: MediaQuery.of(context).size.height * 0.127,
+            height: MediaQuery.of(context).size.height * 0.148887,
             child: Container(
               decoration: const BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(24),
-                  topRight: Radius.circular(24),
-                ),
+                borderRadius: BorderRadius.zero,
               ),
             ),
           ),
@@ -167,13 +164,13 @@ class _GenderScreenState extends State<GenderScreen> {
           Positioned(
             left: 24,
             right: 24,
-            bottom: MediaQuery.of(context).size.height * 0.05,
+            bottom: MediaQuery.of(context).size.height * 0.06,
             child: Container(
               width: double.infinity,
-              height: MediaQuery.of(context).size.height * 0.064,
+              height: MediaQuery.of(context).size.height * 0.0689,
               decoration: BoxDecoration(
                 color: selectedGender != null ? Colors.black : Colors.grey[300],
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(28),
               ),
               child: TextButton(
                 onPressed: selectedGender != null
