@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fitness_app/Features/onboarding/presentation/screens/next_intro_screen_2.dart';
 import 'package:fitness_app/Features/onboarding/presentation/screens/next_intro_screen_4.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class NextIntroScreen extends StatefulWidget {
   const NextIntroScreen({super.key});
@@ -178,29 +179,8 @@ class _NextIntroScreenState extends State<NextIntroScreen> {
               ),
               child: TextButton(
                 onPressed: () {
-                  if (_sliderValue == 0) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => NextIntroScreen4(
-                          isMetric: false, // Default to imperial
-                          initialWeight: 150, // Default to 150lbs
-                          gymGoal:
-                              null, // No gym goal since they selected 0 times per week
-                        ),
-                      ),
-                    );
-                  } else {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => NextIntroScreen2(
-                          isMetric: false, // Default to imperial
-                          initialWeight: 150, // Default to 150lbs
-                        ),
-                      ),
-                    );
-                  }
+                  // Load height from SharedPreferences before navigating
+                  _loadHeightAndNavigate();
                 },
                 child: const Text(
                   'Continue',
@@ -217,5 +197,89 @@ class _NextIntroScreenState extends State<NextIntroScreen> {
         ],
       ),
     );
+  }
+
+  // Helper to load height from SharedPreferences and then navigate
+  Future<void> _loadHeightAndNavigate() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // Get height from SharedPreferences (if available)
+      int heightInCm = 170; // Default height if not found
+
+      // Try to get height from SharedPreferences in priority order
+      if (prefs.containsKey('user_height_cm')) {
+        heightInCm = prefs.getInt('user_height_cm') ?? heightInCm;
+      } else if (prefs.containsKey('heightInCm')) {
+        heightInCm = prefs.getDouble('heightInCm')?.toInt() ?? heightInCm;
+      }
+
+      print('Loaded height from SharedPreferences: $heightInCm cm');
+
+      // Get weight from SharedPreferences (if available)
+      int initialWeight = 150; // Default weight in lbs
+      bool isMetric = prefs.getBool('is_metric') ?? false;
+
+      if (prefs.containsKey('user_weight_kg')) {
+        double weightKg = prefs.getDouble('user_weight_kg') ?? 70.0;
+        if (!isMetric) {
+          // Convert kg to lbs for imperial
+          initialWeight = (weightKg / 0.453592).round();
+        } else {
+          initialWeight = weightKg.round();
+        }
+      } else if (prefs.containsKey('original_weight_lbs') && !isMetric) {
+        initialWeight = prefs.getInt('original_weight_lbs') ?? initialWeight;
+      }
+
+      // Navigate based on gym frequency
+      if (_sliderValue == 0) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => NextIntroScreen4(
+              isMetric: isMetric,
+              initialWeight: initialWeight,
+              gymGoal: null, // No gym goal since they selected 0 times per week
+            ),
+          ),
+        );
+      } else {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => NextIntroScreen2(
+              isMetric: isMetric,
+              initialWeight: initialWeight,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error loading height from SharedPreferences: $e');
+      // Continue with navigation using defaults
+      if (_sliderValue == 0) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => NextIntroScreen4(
+              isMetric: false,
+              initialWeight: 150,
+              gymGoal: null,
+            ),
+          ),
+        );
+      } else {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => NextIntroScreen2(
+              isMetric: false,
+              initialWeight: 150,
+            ),
+          ),
+        );
+      }
+    }
   }
 }

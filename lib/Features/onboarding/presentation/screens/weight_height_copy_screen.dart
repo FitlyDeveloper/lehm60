@@ -6,6 +6,7 @@ import 'package:flutter/gestures.dart';
 import 'dart:async';
 import 'package:fitness_app/Features/onboarding/presentation/screens/gender_selection_screen.dart';
 import 'package:fitness_app/Features/onboarding/presentation/screens/weight_goal_copy_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class CustomScrollBehavior extends ScrollBehavior {
   @override
@@ -57,18 +58,107 @@ class _WeightHeightCopyScreenState extends State<WeightHeightCopyScreen> {
     isMetric = widget.isMetric;
     print(
         "Weight Height Screen: Initial Weight=${widget.initialWeight}, Metric=${isMetric}"); // Debug
-    selectedWeight =
-        ValueNotifier(widget.initialWeight); // Initialize with passed weight
-    if (isMetric) {
-      selectedFeet = ValueNotifier(170); // Default 170 cm for metric
-      selectedInches = ValueNotifier(0); // Not used in metric
-    } else {
-      selectedFeet = ValueNotifier(5); // Default 5 feet for imperial
-      selectedInches = ValueNotifier(7); // Default 7 inches for imperial
-    }
+
+    // Initialize with passed weight
+    selectedWeight = ValueNotifier(widget.initialWeight);
+
+    // Initialize date values IMMEDIATELY (not in async method)
     selectedDay = ValueNotifier(1);
     selectedMonth = ValueNotifier(1);
     selectedYear = ValueNotifier(2000);
+
+    // CRITICAL FIX: Load height from SharedPreferences instead of using defaults
+    _loadSavedHeight();
+  }
+
+  // CRITICAL FIX: Added method to load height from SharedPreferences
+  Future<void> _loadSavedHeight() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      print("Loading height from SharedPreferences...");
+
+      // Debug all height values
+      print("Current height values in SharedPreferences:");
+      for (String key in [
+        'user_height_cm',
+        'heightInCm',
+        'height_cm',
+        'height',
+        'original_height_feet',
+        'original_height_inches'
+      ]) {
+        if (prefs.containsKey(key)) {
+          if (key.contains('height') && key.contains('cm') || key == 'height') {
+            print("$key: ${prefs.getInt(key) ?? prefs.getDouble(key)}");
+          } else if (key.contains('feet') || key.contains('inches')) {
+            print("$key: ${prefs.getInt(key)}");
+          }
+        } else {
+          print("$key: not found");
+        }
+      }
+
+      if (isMetric) {
+        // For metric, load height in cm directly
+        int? savedHeight = prefs.getInt('user_height_cm');
+        if (savedHeight != null) {
+          selectedFeet = ValueNotifier(savedHeight);
+          print("Loaded metric height: $savedHeight cm");
+        } else {
+          // Try double value
+          double? savedHeightDouble = prefs.getDouble('heightInCm');
+          if (savedHeightDouble != null) {
+            selectedFeet = ValueNotifier(savedHeightDouble.round());
+            print(
+                "Loaded metric height (from double): ${savedHeightDouble.round()} cm");
+          } else {
+            // Default if not found
+            selectedFeet = ValueNotifier(170);
+            print("No saved height found, using default: 170 cm");
+          }
+        }
+        selectedInches = ValueNotifier(0); // Not used in metric
+      } else {
+        // For imperial, try to get original feet/inches first
+        int? savedFeet = prefs.getInt('original_height_feet');
+        int? savedInches = prefs.getInt('original_height_inches');
+
+        if (savedFeet != null && savedInches != null) {
+          selectedFeet = ValueNotifier(savedFeet);
+          selectedInches = ValueNotifier(savedInches);
+          print("Loaded imperial height: $savedFeet feet $savedInches inches");
+        } else {
+          // If original values not found, try to convert from cm
+          int? savedHeightCm = prefs.getInt('user_height_cm');
+          if (savedHeightCm != null) {
+            // Convert cm to feet and inches
+            double inches = savedHeightCm / 2.54;
+            int feet = (inches / 12).floor();
+            int remainingInches = (inches % 12).round();
+
+            selectedFeet = ValueNotifier(feet);
+            selectedInches = ValueNotifier(remainingInches);
+            print(
+                "Converted height from $savedHeightCm cm to $feet feet $remainingInches inches");
+          } else {
+            // Default if nothing found
+            selectedFeet = ValueNotifier(5);
+            selectedInches = ValueNotifier(7);
+            print("No saved height found, using default: 5 feet 7 inches");
+          }
+        }
+      }
+    } catch (e) {
+      print("Error loading height: $e");
+      // Use defaults in case of error
+      if (isMetric) {
+        selectedFeet = ValueNotifier(170);
+        selectedInches = ValueNotifier(0);
+      } else {
+        selectedFeet = ValueNotifier(5);
+        selectedInches = ValueNotifier(7);
+      }
+    }
   }
 
   @override
@@ -151,6 +241,29 @@ class _WeightHeightCopyScreenState extends State<WeightHeightCopyScreen> {
           }
         }
       });
+    }
+  }
+
+  int getHeightInCm() {
+    if (!isMetric) {
+      // Convert feet and inches to cm for imperial
+      int feet = selectedFeet.value;
+      int inches = selectedInches.value;
+
+      // CRITICAL FIX: Verify inches is in correct range (0-11)
+      if (inches < 0 || inches > 11) {
+        print(
+            "WARNING: Fixing invalid inches value $inches to valid range (0-11)");
+        inches = inches % 12;
+      }
+
+      double heightInCm = ((feet * 12 + inches) * 2.54);
+      print(
+          'Converting height: $feet feet $inches inches = ${heightInCm.toInt()} cm');
+      return heightInCm.toInt();
+    } else {
+      // For metric, the height is already in cm
+      return selectedFeet.value;
     }
   }
 
@@ -284,11 +397,7 @@ class _WeightHeightCopyScreenState extends State<WeightHeightCopyScreen> {
                       "Total inches: ${selectedFeet.value * 12 + selectedInches.value}");
 
                   // Calculate height first
-                  final heightInCm = isMetric
-                      ? selectedFeet.value // Already in cm for metric
-                      : ((selectedFeet.value * 12 + selectedInches.value) *
-                              2.54)
-                          .round(); // Convert total inches to cm
+                  final heightInCm = getHeightInCm();
 
                   // Print the result after calculation
                   print("Final cm: $heightInCm");

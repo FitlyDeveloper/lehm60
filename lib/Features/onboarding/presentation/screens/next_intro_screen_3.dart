@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:fitness_app/Features/onboarding/presentation/screens/next_intro_screen_4.dart';
 import 'package:fitness_app/Features/onboarding/presentation/screens/weight_height_copy_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class NextIntroScreen3 extends StatefulWidget {
   final bool isMetric;
   final int initialWeight;
+  final int workoutTime;
+  final int heightInCm;
 
   const NextIntroScreen3({
     super.key,
     required this.isMetric,
     required this.initialWeight,
+    this.workoutTime = 45, // Default to 45 minutes if not specified
+    required this.heightInCm,
   });
 
   @override
@@ -212,16 +217,54 @@ class _NextIntroScreen3State extends State<NextIntroScreen3> {
   }
 
   void _handleNavigation() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => NextIntroScreen4(
-          isMetric: widget.isMetric,
-          initialWeight: widget.initialWeight,
-          gymGoal: selectedGoal, // Pass the selected gym goal
+    if (selectedIndex == null) {
+      // No option selected, just go to next screen
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => NextIntroScreen4(
+            isMetric: widget.isMetric,
+            initialWeight: widget.initialWeight,
+            gymGoal: null,
+          ),
         ),
-      ),
-    );
+      );
+    } else {
+      // Map index to name
+      final goalNames = ['Build Muscle', 'Gain Strength', 'Boost Endurance'];
+      final gymGoal = goalNames[selectedIndex!];
+
+      // Save the gym goal to SharedPreferences for later use
+      _saveGymGoalToPreferences(gymGoal);
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => NextIntroScreen4(
+            isMetric: widget.isMetric,
+            initialWeight: widget.initialWeight,
+            gymGoal: gymGoal,
+          ),
+        ),
+      );
+    }
+  }
+
+  // Helper method to save gym goal to SharedPreferences
+  Future<void> _saveGymGoalToPreferences(String gymGoal) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('gymGoal', gymGoal);
+
+      // Also save the height to ensure it's preserved
+      await prefs.setInt('user_height_cm', widget.heightInCm);
+      await prefs.setDouble('heightInCm', widget.heightInCm.toDouble());
+
+      print(
+          'Saved gym goal: $gymGoal and height: ${widget.heightInCm}cm to SharedPreferences');
+    } catch (e) {
+      print('Error saving gym goal to SharedPreferences: $e');
+    }
   }
 
   Widget _buildOption(String title, String subtitle, IconData? icon,
