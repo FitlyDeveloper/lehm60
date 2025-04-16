@@ -372,31 +372,44 @@ class _CodiaPageState extends State<CodiaPage> {
 
       // ----- GOAL SPEED -----
       print('\nLOADING GOAL SPEED:');
-      List<String> speedKeys = [
+      List<String> goalSpeedKeys = [
         'goal_speed',
         'goalSpeed',
-        'speedValue',
-        'weightChangeRate',
-        'goal_speed_kg_per_week' // Add new key that might store converted value
+        'targetRate',
+        'target_rate',
+        'goal_speed_kg_per_week', // This key explicitly indicates kg units
       ];
       double goalSpeed = 0.0; // Default
-      double originalGoalSpeed = 0.0;
-      String speedUnit = 'kg/week'; // Default unit
+      double originalGoalSpeed = 0.0; // Store original for display
+      String speedUnit = 'kg/week'; // Default
 
-      // Check if this is a maintain goal - if so, force speed to 0
-      if (goal == 'maintain') {
-        print('Goal is maintain, forcing goal speed to 0.0 kg/week');
-        goalSpeed = 0.0;
-        originalGoalSpeed = 0.0;
-      } else {
-        // Only try to load goal speed for non-maintain goals
-        for (String key in speedKeys) {
-          if (prefs.containsKey(key)) {
-            try {
+      // First, try to find any goal_speed_kg_per_week which is guaranteed to be in kg
+      try {
+        if (prefs.containsKey('goal_speed_kg_per_week')) {
+          double? speedKg = prefs.getDouble('goal_speed_kg_per_week');
+          if (speedKg != null) {
+            goalSpeed = speedKg;
+            originalGoalSpeed = goalSpeed;
+            speedUnit = 'kg/week';
+            print('Found goal speed in kg: $goalSpeed kg/week');
+          }
+        }
+      } catch (e) {
+        print('Error reading goal_speed_kg_per_week: $e');
+      }
+
+      // If we didn't find the kg-specific key, check other keys
+      if (goalSpeed == 0.0) {
+        // Try other keys
+        for (String key in goalSpeedKeys) {
+          if (key == 'goal_speed_kg_per_week') continue; // Already checked
+
+          try {
+            if (prefs.containsKey(key)) {
               double? speed = prefs.getDouble(key);
               if (speed != null) {
                 goalSpeed = speed;
-                originalGoalSpeed = speed;
+                originalGoalSpeed = goalSpeed;
                 print('Found goal speed in key "$key": $goalSpeed');
                 break;
               }
@@ -409,9 +422,9 @@ class _CodiaPageState extends State<CodiaPage> {
                 print('Found goal speed (as int) in key "$key": $goalSpeed');
                 break;
               }
-            } catch (e) {
-              print('Error reading goal speed from key "$key": $e');
             }
+          } catch (e) {
+            print('Error reading goal speed from key "$key": $e');
           }
         }
         print('Original goal speed: $originalGoalSpeed');
@@ -442,19 +455,14 @@ class _CodiaPageState extends State<CodiaPage> {
         isImperialUnits = true;
       }
 
-      if (goalSpeed >= 0.5 && goalSpeed <= 2.0 && goalSpeed % 0.5 == 0) {
-        print('Goal speed value suggests imperial units (pounds/week)');
-        isImperialUnits = true;
-      }
+      // CRITICAL: Handle goal speed units correctly based on metric setting
+      // If isMetric is true: goalSpeed is in kg/week
+      // If isMetric is false (imperial): goalSpeed is in lb/week and needs conversion to kg for calculations
 
-      print('Using units: ${isImperialUnits ? "Imperial" : "Metric"}');
-
-      // If we're using imperial units and the goal speed is very small, it might be in lbs/week
-      // In that case, we should NOT convert it to kg
       double displayGoalSpeed = goalSpeed;
-      bool speedWasInImperial = false;
+      bool speedWasInImperial = !isMetric; // Default based on unit system
 
-      // Check if we're using imperial units
+      // If we're using imperial units, process accordingly
       if (isImperialUnits && goal != 'maintain') {
         // Convert weight if needed
         if (weightInKg > 100) {
@@ -464,18 +472,23 @@ class _CodiaPageState extends State<CodiaPage> {
               'Converting weight from lbs to kg: $oldWeight lbs → $weightInKg kg');
         }
 
-        // For imperial units, always keep track of original value for display
+        // Handle goal speed for imperial systems - it's in lb/week and needs conversion
+        // UNLESS we got it from goal_speed_kg_per_week which is already in kg
         speedWasInImperial = true;
         speedUnit = 'lb/week';
         displayGoalSpeed = goalSpeed; // Store original value for display
 
-        // Convert only if greater than 0 (non-zero)
-        if (goalSpeed > 0) {
+        // Check if we got the value from the kg-specific key
+        if (prefs.containsKey('goal_speed_kg_per_week')) {
+          print('Using goal speed already in kg: $goalSpeed kg/week');
+          speedWasInImperial = false;
+          speedUnit = 'kg/week';
+        } else if (goalSpeed > 0) {
+          // This is in lb/week and needs conversion to kg for calculations
           double oldSpeed = goalSpeed;
-          // For imperial conversion, keep ALL decimal places (don't round)
           goalSpeed = goalSpeed * 0.453592; // Convert to kg/week
           print(
-              'Converting goal speed from lb/week to kg/week: $oldSpeed → $goalSpeed');
+              'Converting goal speed from lb/week to kg/week: $oldSpeed lb/week → $goalSpeed kg/week');
         }
       }
 
@@ -488,22 +501,21 @@ class _CodiaPageState extends State<CodiaPage> {
 
       // NORMALIZE GOAL SPEED to exact increments - but only for display or for metric values
       if (goal != 'maintain' && goalSpeed > 0) {
-        // For display value (already in lb), round to exactly 1 decimal place
+        // For display value, round to exactly 1 decimal place
         displayGoalSpeed = (displayGoalSpeed * 10).round() / 10.0;
-        print(
-            'Normalized display goal speed to ${displayGoalSpeed.toStringAsFixed(1)} lb/week');
 
-        // For kg/metric values, normalize to 1 decimal, but for converted values, keep all precision
-        if (!isImperialUnits) {
-          // Round metric values to 1 decimal
-          goalSpeed = (goalSpeed * 10).round() / 10.0;
+        if (speedWasInImperial) {
           print(
-              'Normalized metric goal speed to ${goalSpeed.toStringAsFixed(1)} kg/week');
+              'Normalized display goal speed to ${displayGoalSpeed.toStringAsFixed(1)} lb/week');
         } else {
-          // Keep full precision for imperial conversions
           print(
-              'Keeping full precision for converted imperial value: $goalSpeed kg/week');
+              'Normalized display goal speed to ${displayGoalSpeed.toStringAsFixed(1)} kg/week');
         }
+
+        // For the actual calculation value, also normalize to 1 decimal
+        goalSpeed = (goalSpeed * 10).round() / 10.0;
+        print(
+            'Normalized calculation goal speed to ${goalSpeed.toStringAsFixed(1)} kg/week');
       }
 
       // Round weight to 1 decimal place
@@ -586,7 +598,7 @@ class _CodiaPageState extends State<CodiaPage> {
     print('- Goal: "$userGoal"');
     print('- Goal Speed: $goalSpeedKgPerWeek kg/week');
     print('- Gym Goal: "$userGymGoal"');
-    print('- Is Metric: $isImperial');
+    print('- Is Imperial: $isImperial');
 
     // Convert measurements for consistency with calculation_screen.dart
     final weightInKg = userWeightKg;
@@ -595,10 +607,6 @@ class _CodiaPageState extends State<CodiaPage> {
     final birthDate = DateTime.now().subtract(Duration(days: 365 * userAge));
     final isGaining = userGoal == 'gain';
     double speedValue = goalSpeedKgPerWeek;
-    if (isImperial && speedValue > 0) {
-      // Convert to lbs for display
-      speedValue = speedValue / 0.453592;
-    }
     final isMetric = !isImperial;
     final gymGoal = userGymGoal;
 
@@ -606,6 +614,7 @@ class _CodiaPageState extends State<CodiaPage> {
     print('- Weight in kg: $weightInKg');
     print('- Height in cm: $heightInCm');
     print('- Speed: $speedValue ${isMetric ? 'kg' : 'lbs'}/week');
+    print('- Units: ${isMetric ? 'Metric' : 'Imperial'}');
 
     // NORMALIZE GOAL SPEED to exact increments - EXACT COPY FROM CALCULATION_SCREEN
     double normalizedSpeed = speedValue;
@@ -616,10 +625,17 @@ class _CodiaPageState extends State<CodiaPage> {
         print(
             'Normalized goal speed from $speedValue to ${normalizedSpeed.toStringAsFixed(1)} kg/week');
       } else {
-        // Round to exactly 1 decimal place for pounds
+        // For imperial units, speedValue is already in kg, so convert to lbs first for display
+        double speedInLbs = speedValue / 0.453592;
+        // Then round to exactly 1 decimal place
+        double displaySpeed = (speedInLbs * 10).round() / 10.0;
+        print(
+            'Display speed in pounds: ${displaySpeed.toStringAsFixed(1)} lb/week');
+
+        // But keep using the kg value for calculations
         normalizedSpeed = (speedValue * 10).round() / 10.0;
         print(
-            'Normalized goal speed from $speedValue to ${normalizedSpeed.toStringAsFixed(1)} lb/week');
+            'Normalized goal speed (kept in kg): ${normalizedSpeed.toStringAsFixed(1)} kg/week');
       }
     }
 
@@ -648,8 +664,6 @@ class _CodiaPageState extends State<CodiaPage> {
     } else {
       if (isMetric) {
         // Metric: Use 7700 kcal per kg
-        // Round to 1 decimal place for metric values
-        normalizedSpeed = (normalizedSpeed * 10).round() / 10.0;
         // Do NOT round the deficit calculation to maintain precision for small values
         double exactMetricDeficit = normalizedSpeed * 7700 / 7;
         dailyDeficit =
@@ -658,14 +672,15 @@ class _CodiaPageState extends State<CodiaPage> {
             'Metric calculation: ${normalizedSpeed.toStringAsFixed(3)} kg/week × 7700 ÷ 7 = ${exactMetricDeficit.toStringAsFixed(3)} → $dailyDeficit calories/day');
       } else {
         // Imperial: Use 3500 kcal per lb
-        // For imperial values, keep full precision during calculation
-        // For display only, round to 1 decimal place
-        double displaySpeed = (normalizedSpeed * 10).round() / 10.0;
-        // Do NOT round the deficit calculation to maintain precision for small values
-        double exactDeficit = normalizedSpeed * 3500 / 7;
+        // However, we're still using kg value for normalizedSpeed, so convert to lb first
+        double speedInLbs = normalizedSpeed / 0.453592;
+        double displaySpeedLb = (speedInLbs * 10).round() / 10.0;
+
+        // Calculate deficit using pounds formula
+        double exactDeficit = speedInLbs * 3500 / 7;
         dailyDeficit = exactDeficit.floor(); // Weekly lbs to daily calories
         print(
-            'Imperial calculation: ${displaySpeed.toStringAsFixed(1)} lb/week × 3500 ÷ 7 = ${exactDeficit.toStringAsFixed(3)} → $dailyDeficit calories/day');
+            'Imperial calculation: ${displaySpeedLb.toStringAsFixed(1)} lb/week × 3500 ÷ 7 = ${exactDeficit.toStringAsFixed(3)} → $dailyDeficit calories/day');
       }
     }
 
