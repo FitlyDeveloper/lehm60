@@ -274,11 +274,11 @@ class _CoachScreenState extends State<CoachScreen>
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 29)
                           .copyWith(top: 16, bottom: 8.5),
-              child: Stack(
-                children: [
+                      child: Stack(
+                        children: [
                           // Back button
-                  Positioned(
-                    left: 0,
+                          Positioned(
+                            left: 0,
                             top: 22,
                             child: IconButton(
                               icon: const Icon(Icons.arrow_back,
@@ -306,10 +306,10 @@ class _CoachScreenState extends State<CoachScreen>
                               SizedBox(width: 8),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
                                   Text(
-                            'Coach',
+                                    'Coach',
                                     style: TextStyle(
                                       fontSize: 24,
                                       fontWeight: FontWeight.bold,
@@ -318,8 +318,8 @@ class _CoachScreenState extends State<CoachScreen>
                                       decoration: TextDecoration.none,
                                     ),
                                     maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                   SizedBox(height: 1.6),
                                   Text(
                                     'Active now',
@@ -331,8 +331,8 @@ class _CoachScreenState extends State<CoachScreen>
                                       fontWeight: FontWeight.normal,
                                     ),
                                     maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ],
                               ),
                             ],
@@ -384,8 +384,8 @@ class _CoachScreenState extends State<CoachScreen>
                                         elevation: 0,
                                         borderRadius: BorderRadius.circular(20),
                                         color: Colors.white,
-                    child: Container(
-                      decoration: BoxDecoration(
+                                        child: Container(
+                                          decoration: BoxDecoration(
                                             borderRadius:
                                                 BorderRadius.circular(20),
                                             color: Colors.white,
@@ -393,8 +393,8 @@ class _CoachScreenState extends State<CoachScreen>
                                               BoxShadow(
                                                 color: Colors.black
                                                     .withOpacity(0.05),
-                                                blurRadius: 4,
-                                                offset: Offset(0, 2),
+                                                blurRadius: 10,
+                                                offset: Offset(0, 5),
                                               ),
                                             ],
                                           ),
@@ -433,7 +433,7 @@ class _CoachScreenState extends State<CoachScreen>
                                           _copyToClipboard(message.text),
                                       child: Material(
                                         elevation: 0,
-                        borderRadius: BorderRadius.circular(20),
+                                        borderRadius: BorderRadius.circular(20),
                                         color: message.isFromUser
                                             ? Colors.black
                                             : Colors.white,
@@ -448,8 +448,8 @@ class _CoachScreenState extends State<CoachScreen>
                                               BoxShadow(
                                                 color: Colors.black
                                                     .withOpacity(0.05),
-                                                blurRadius: 4,
-                                                offset: Offset(0, 2),
+                                                blurRadius: 10,
+                                                offset: Offset(0, 5),
                                               ),
                                             ],
                                           ),
@@ -486,7 +486,7 @@ class _CoachScreenState extends State<CoachScreen>
                 // Input area below chat (fixed, non-scrolling)
                 Column(
                   mainAxisSize: MainAxisSize.min,
-                          children: [
+                  children: [
                     // Example text if needed
                     if (_showExample)
                       Padding(
@@ -571,47 +571,113 @@ class _CoachScreenState extends State<CoachScreen>
                       ),
                     ),
                   ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
   Widget _buildRichText(String text, bool isFromUser) {
     final List<TextSpan> spans = [];
-    final RegExp exp = RegExp(r'\*\*(.*?)\*\*');
-    final matches = exp.allMatches(text);
 
-    int lastIndex = 0;
-    for (final match in matches) {
-      final start = match.start;
-      final end = match.end;
-      if (start > lastIndex) {
+    // First handle bold text formatted with ** around it
+    final RegExp boldPattern = RegExp(r'\*\*(.*?)\*\*');
+    final matches = boldPattern.allMatches(text);
+
+    // If no bold formatting is found, check for single * formatting
+    if (matches.isEmpty) {
+      final RegExp singleAsteriskPattern = RegExp(r'\*(.*?)\*');
+      final singleMatches = singleAsteriskPattern.allMatches(text);
+
+      int lastIndex = 0;
+      for (final match in singleMatches) {
+        final start = match.start;
+        final end = match.end;
+
+        // Add text before the bold part
+        if (start > lastIndex) {
+          spans.add(TextSpan(
+            text: text.substring(lastIndex, start),
+            style: TextStyle(
+              fontSize: 16,
+              color: isFromUser ? Colors.white : Colors.black,
+            ),
+          ));
+        }
+
+        // Add the bold text (without the * symbols)
         spans.add(TextSpan(
-          text: text.substring(lastIndex, start),
+          text: match.group(1),
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: isFromUser ? Colors.white : Colors.black,
+          ),
+        ));
+
+        lastIndex = end;
+      }
+
+      // Add remaining text after the last match
+      if (lastIndex < text.length) {
+        spans.add(TextSpan(
+          text: text.substring(lastIndex),
           style: TextStyle(
             fontSize: 16,
             color: isFromUser ? Colors.white : Colors.black,
           ),
         ));
       }
-      spans.add(TextSpan(
-        text: match.group(1),
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-          color: isFromUser ? Colors.white : Colors.black,
-        ),
-      ));
-      lastIndex = end;
+    } else {
+      // Process double-asterisk pattern as before
+      int lastIndex = 0;
+      for (final match in matches) {
+        final start = match.start;
+        final end = match.end;
+
+        // Add text before the bold part
+        if (start > lastIndex) {
+          spans.add(TextSpan(
+            text: text.substring(lastIndex, start),
+            style: TextStyle(
+              fontSize: 16,
+              color: isFromUser ? Colors.white : Colors.black,
+            ),
+          ));
+        }
+
+        // Add the bold text (without the ** symbols)
+        spans.add(TextSpan(
+          text: match.group(1),
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: isFromUser ? Colors.white : Colors.black,
+          ),
+        ));
+
+        lastIndex = end;
+      }
+
+      // Add remaining text after the last match
+      if (lastIndex < text.length) {
+        spans.add(TextSpan(
+          text: text.substring(lastIndex),
+          style: TextStyle(
+            fontSize: 16,
+            color: isFromUser ? Colors.white : Colors.black,
+          ),
+        ));
+      }
     }
 
-    if (lastIndex < text.length) {
+    // If no formatting was found at all, just return the plain text
+    if (spans.isEmpty) {
       spans.add(TextSpan(
-        text: text.substring(lastIndex),
+        text: text,
         style: TextStyle(
           fontSize: 16,
           color: isFromUser ? Colors.white : Colors.black,
@@ -620,9 +686,7 @@ class _CoachScreenState extends State<CoachScreen>
     }
 
     return RichText(
-      text: TextSpan(
-        children: spans,
-      ),
+      text: TextSpan(children: spans),
     );
   }
 
