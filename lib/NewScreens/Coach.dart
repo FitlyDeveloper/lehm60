@@ -5,7 +5,11 @@ import 'dart:math';
 import 'dart:async';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
 import '../services/ai_service.dart';
+
+// Key for detecting hot restart
+const String _kHotRestartKey = 'coach_hot_restart_timestamp';
 
 class CoachScreen extends StatefulWidget {
   CoachScreen({super.key});
@@ -84,9 +88,49 @@ class _CoachScreenState extends State<CoachScreen>
     _showCopyToast('Copied to clipboard');
   }
 
+  // Check if app is reloaded from terminal
+  Future<bool> _isHotRestarted() async {
+    // Always return false in release mode
+    if (!kDebugMode) return false;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final lastTimestamp = prefs.getInt(_kHotRestartKey) ?? 0;
+
+      // If it's been less than 5 seconds since last timestamp, it's likely a hot restart
+      final isHotRestart = (now - lastTimestamp) < 5000;
+
+      // Update the timestamp for next detection
+      await prefs.setInt(_kHotRestartKey, now);
+
+      if (isHotRestart) {
+        print('Hot restart detected - resetting chat');
+      }
+
+      return isHotRestart;
+    } catch (e) {
+      print('Error detecting hot restart: $e');
+      return false;
+    }
+  }
+
   // Load chat history from SharedPreferences
   Future<void> _loadChatHistory() async {
     try {
+      // Check for hot restart first
+      bool hotRestarted = await _isHotRestarted();
+
+      // If hot restarted, reset chat and don't load history
+      if (hotRestarted) {
+        setState(() {
+          _messages = [
+            Message(text: 'Hey! How can I help you?', isFromUser: false),
+          ];
+        });
+        return;
+      }
+
       final prefs = await SharedPreferences.getInstance();
       final String? chatHistoryJson = prefs.getString(CHAT_HISTORY_KEY);
 

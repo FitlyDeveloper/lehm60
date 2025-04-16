@@ -86,6 +86,11 @@ void main() async {
   // Debug option: Uncomment the line below to clear all saved data during testing
   // await SharedPreferences.getInstance().then((prefs) => prefs.clear());
 
+  // Update hot restart timestamp for detection in Coach screen
+  if (kDebugMode) {
+    _updateHotRestartTimestamp();
+  }
+
   // Initialize background cleanup for expired chat messages (every 6 hours)
   _initializeMessageCleanupService();
 
@@ -95,6 +100,19 @@ void main() async {
       builder: (context) => const MyApp(),
     ),
   );
+}
+
+// Update timestamp when app is hot restarted
+Future<void> _updateHotRestartTimestamp() async {
+  try {
+    const String hotRestartKey = 'coach_hot_restart_timestamp';
+    final prefs = await SharedPreferences.getInstance();
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await prefs.setInt(hotRestartKey, now);
+    print('Set hot restart timestamp: $now');
+  } catch (e) {
+    print('Error setting hot restart timestamp: $e');
+  }
 }
 
 // Setup a background timer to clean up expired chat messages
