@@ -201,42 +201,40 @@ class _LogDescribeExerciseState extends State<LogDescribeExercise> {
                           ),
                           SizedBox(height: 15),
                           // Distance Chips
-                          SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 8),
                             child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: distances.map((distance) {
-                                return Padding(
-                                  padding: EdgeInsets.only(right: 15),
-                                  child: ChoiceChip(
-                                    label: Text(
-                                      distance,
-                                      style: TextStyle(
-                                        color: selectedDistance == distance ? Colors.white : Colors.black,
-                                        fontWeight: FontWeight.w500,
-                                        fontSize: 13,
-                                      ),
+                                return ChoiceChip(
+                                  label: Text(
+                                    distance,
+                                    style: TextStyle(
+                                      color: selectedDistance == distance ? Colors.white : Colors.black,
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 13,
                                     ),
-                                    selected: selectedDistance == distance,
-                                    onSelected: (bool selected) {
-                                      setState(() {
-                                        selectedDistance = selected ? distance : null;
-                                        if (selected) {
-                                          _distanceController.text = distance.replaceAll(' km', '');
-                                        }
-                                      });
-                                    },
-                                    backgroundColor: Colors.white,
-                                    selectedColor: Colors.black,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(20),
-                                      side: BorderSide(
-                                        color: selectedDistance == distance ? Colors.black : Colors.grey[300]!,
-                                      ),
-                                    ),
-                                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                    visualDensity: VisualDensity.compact,
                                   ),
+                                  selected: selectedDistance == distance,
+                                  onSelected: (bool selected) {
+                                    setState(() {
+                                      selectedDistance = selected ? distance : null;
+                                      if (selected) {
+                                        _distanceController.text = distance.replaceAll(' km', '');
+                                      }
+                                    });
+                                  },
+                                  backgroundColor: Colors.white,
+                                  selectedColor: Colors.black,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                    side: BorderSide(
+                                      color: selectedDistance == distance ? Colors.black : Colors.grey[300]!,
+                                    ),
+                                  ),
+                                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  visualDensity: VisualDensity.compact,
                                 );
                               }).toList(),
                             ),
@@ -303,47 +301,42 @@ class _LogDescribeExerciseState extends State<LogDescribeExercise> {
                           ),
                           SizedBox(height: 20),
                           // Time Chips
-                          SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: Center(
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: times.map((time) {
-                                  return Padding(
-                                    padding: EdgeInsets.only(right: 8),
-                                    child: ChoiceChip(
-                                      label: Text(
-                                        time,
-                                        style: TextStyle(
-                                          color: selectedTime == time ? Colors.white : Colors.black,
-                                          fontWeight: FontWeight.w500,
-                                          fontSize: 13,
-                                        ),
-                                      ),
-                                      selected: selectedTime == time,
-                                      onSelected: (bool selected) {
-                                        setState(() {
-                                          selectedTime = selected ? time : null;
-                                          if (selected) {
-                                            _timeController.text = time.replaceAll(' min', '');
-                                          }
-                                        });
-                                      },
-                                      backgroundColor: Colors.white,
-                                      selectedColor: Colors.black,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(20),
-                                        side: BorderSide(
-                                          color: selectedTime == time ? Colors.black : Colors.grey[300]!,
-                                        ),
-                                      ),
-                                      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                      visualDensity: VisualDensity.compact,
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 8),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: times.map((time) {
+                                return ChoiceChip(
+                                  label: Text(
+                                    time,
+                                    style: TextStyle(
+                                      color: selectedTime == time ? Colors.white : Colors.black,
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 13,
                                     ),
-                                  );
-                                }).toList(),
-                              ),
+                                  ),
+                                  selected: selectedTime == time,
+                                  onSelected: (bool selected) {
+                                    setState(() {
+                                      selectedTime = selected ? time : null;
+                                      if (selected) {
+                                        _timeController.text = time.replaceAll(' min', '');
+                                      }
+                                    });
+                                  },
+                                  backgroundColor: Colors.white,
+                                  selectedColor: Colors.black,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                    side: BorderSide(
+                                      color: selectedTime == time ? Colors.black : Colors.grey[300]!,
+                                    ),
+                                  ),
+                                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  visualDensity: VisualDensity.compact,
+                                );
+                              }).toList(),
                             ),
                           ),
                           SizedBox(height: 20),
