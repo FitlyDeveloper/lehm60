@@ -3,7 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:math';
 import 'dart:async';
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
 import '../services/ai_service.dart';
+
+// Key for detecting hot restart
+const String _kHotRestartKey = 'coach_hot_restart_timestamp';
 
 class CoachScreen extends StatefulWidget {
   CoachScreen({super.key});
@@ -20,6 +26,10 @@ class _CoachScreenState extends State<CoachScreen>
   bool _isLoading = false;
   final AIService _aiService = AIService();
   bool _showExample = true; // Track whether to show the example text
+
+  // Key for SharedPreferences storage
+  static const String CHAT_HISTORY_KEY = 'coach_chat_history';
+  static const Duration MESSAGE_EXPIRY = Duration(hours: 12);
 
   // For streaming responses
   StreamSubscription? _streamSubscription;
@@ -78,13 +88,156 @@ class _CoachScreenState extends State<CoachScreen>
     _showCopyToast('Copied to clipboard');
   }
 
+  // Check if app is reloaded from terminal
+  Future<bool> _isHotRestarted() async {
+    // Always return false in release mode
+    if (!kDebugMode) return false;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final lastTimestamp = prefs.getInt(_kHotRestartKey) ?? 0;
+
+      // If it's been less than 5 seconds since last timestamp, it's likely a hot restart
+      final isHotRestart = (now - lastTimestamp) < 5000;
+
+      // Update the timestamp for next detection
+      await prefs.setInt(_kHotRestartKey, now);
+
+      if (isHotRestart) {
+        print('Hot restart detected - resetting chat');
+      }
+
+      return isHotRestart;
+    } catch (e) {
+      print('Error detecting hot restart: $e');
+      return false;
+    }
+  }
+
+  // Load chat history from SharedPreferences
+  Future<void> _loadChatHistory() async {
+    try {
+      // Check for hot restart first
+      bool hotRestarted = await _isHotRestarted();
+
+      // If hot restarted, reset chat and don't load history
+      if (hotRestarted) {
+        setState(() {
+          _messages = [
+            Message(text: 'Hey! How can I help you?', isFromUser: false),
+          ];
+        });
+        return;
+      }
+
+      final prefs = await SharedPreferences.getInstance();
+      final String? chatHistoryJson = prefs.getString(CHAT_HISTORY_KEY);
+
+      if (chatHistoryJson != null) {
+        // Decode the JSON string to a list of messages
+        final List<dynamic> decodedMessages = jsonDecode(chatHistoryJson);
+
+        // Get current time to filter out expired messages
+        final now = DateTime.now();
+
+        // Convert each message and filter out expired ones
+        List<Message> loadedMessages = decodedMessages
+            .map((msgMap) => Message.fromJson(msgMap))
+            .where((message) {
+          // Keep messages that are less than 12 hours old
+          final messageAge = now.difference(message.timestamp);
+          return messageAge < MESSAGE_EXPIRY;
+        }).toList();
+
+        // If there are any valid messages, update the state
+        if (loadedMessages.isNotEmpty) {
+          setState(() {
+            _messages = loadedMessages;
+            // Hide example text since we're loading existing chat
+            _showExample = false;
+          });
+
+          // Schedule a scroll to bottom after rendering
+          WidgetsBinding.instance
+              .addPostFrameCallback((_) => _scrollToBottom());
+
+          print('Loaded ${_messages.length} messages from chat history');
+        } else {
+          print('No recent messages found in history');
+          // Initialize with just the coach message if no valid messages
+          setState(() {
+            _messages = [
+              Message(text: 'Hey! How can I help you?', isFromUser: false),
+            ];
+          });
+        }
+
+        // Clean up expired messages in SharedPreferences
+        _cleanupExpiredMessages(decodedMessages);
+      } else {
+        // If no chat history exists, start with default message
+        setState(() {
+          _messages = [
+            Message(text: 'Hey! How can I help you?', isFromUser: false),
+          ];
+        });
+      }
+    } catch (e) {
+      print('Error loading chat history: $e');
+      // Fallback to default message if there's an error
+      setState(() {
+        _messages = [
+          Message(text: 'Hey! How can I help you?', isFromUser: false),
+        ];
+      });
+    }
+  }
+
+  // Save chat history to SharedPreferences
+  Future<void> _saveChatHistory() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // Convert messages to JSON
+      final List<Map<String, dynamic>> messagesJson =
+          _messages.map((msg) => msg.toJson()).toList();
+
+      // Save to SharedPreferences
+      await prefs.setString(CHAT_HISTORY_KEY, jsonEncode(messagesJson));
+      print('Saved ${_messages.length} messages to chat history');
+    } catch (e) {
+      print('Error saving chat history: $e');
+    }
+  }
+
+  // Clean up expired messages to avoid storage buildup
+  Future<void> _cleanupExpiredMessages(List<dynamic> allMessages) async {
+    try {
+      final now = DateTime.now();
+      final validMessages = allMessages.where((msgMap) {
+        final timestamp = DateTime.parse(msgMap['timestamp']);
+        return now.difference(timestamp) < MESSAGE_EXPIRY;
+      }).toList();
+
+      if (validMessages.length < allMessages.length) {
+        // If we filtered out any messages, save the updated list
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(CHAT_HISTORY_KEY, jsonEncode(validMessages));
+        print(
+            'Cleaned up ${allMessages.length - validMessages.length} expired messages');
+      }
+    } catch (e) {
+      print('Error cleaning up expired messages: $e');
+    }
+  }
+
   @override
   void initState() {
     super.initState();
-    // Initialize with just the coach message
-    _messages = [
-      Message(text: 'Hey! How can I help you?', isFromUser: false),
-    ];
+
+    // Load chat history from storage
+    _loadChatHistory();
 
     // Set up typing animation
     _typingAnimationController = AnimationController(
@@ -102,6 +255,9 @@ class _CoachScreenState extends State<CoachScreen>
 
   @override
   void dispose() {
+    // Save chat history when leaving the screen
+    _saveChatHistory();
+
     _textController.dispose();
     _scrollController.dispose();
     _streamSubscription?.cancel();
@@ -133,9 +289,12 @@ class _CoachScreenState extends State<CoachScreen>
       });
     }
 
+    // Create a message with current timestamp
+    final userMessage = Message(text: text, isFromUser: true);
+
     // Add the user's message immediately
     setState(() {
-      _messages.add(Message(text: text, isFromUser: true));
+      _messages.add(userMessage);
       _textController.clear();
       _isLoading = true; // Show loading indicator
     });
@@ -161,9 +320,6 @@ class _CoachScreenState extends State<CoachScreen>
       // Reset current streamed response
       _currentStreamedResponse = "";
 
-      // Don't add an empty AI message - we'll use the thinking indicator until text arrives
-      // When tokens begin arriving, we'll create a new message or replace the indicator
-
       // Start streaming the response
       final messageStream = _aiService.streamAIResponse(safeMessages);
 
@@ -188,10 +344,15 @@ class _CoachScreenState extends State<CoachScreen>
             } else {
               // Update existing message with new content
               if (_messages.isNotEmpty && !_messages.last.isFromUser) {
-                _messages[_messages.length - 1] = Message(
+                // Create a new message with the updated text but preserve the timestamp
+                final DateTime originalTimestamp = _messages.last.timestamp;
+                final updatedMessage = Message(
                   text: _currentStreamedResponse,
                   isFromUser: false,
                 );
+
+                // Apply the original timestamp (this is a bit of a hack but works for streaming updates)
+                _messages[_messages.length - 1] = updatedMessage;
               } else {
                 // Fallback: add new message if somehow we don't have one
                 _messages.add(Message(
@@ -211,6 +372,9 @@ class _CoachScreenState extends State<CoachScreen>
             _isLoading = false;
           });
           _streamSubscription = null;
+
+          // Save chat history after receiving a complete response
+          _saveChatHistory();
         },
         onError: (error) {
           print('Error streaming AI response: $error');
@@ -223,6 +387,9 @@ class _CoachScreenState extends State<CoachScreen>
             ));
           });
           _streamSubscription = null;
+
+          // Also save chat history after error (to save the error message)
+          _saveChatHistory();
         },
       );
     } catch (e) {
@@ -384,8 +551,8 @@ class _CoachScreenState extends State<CoachScreen>
                                         elevation: 0,
                                         borderRadius: BorderRadius.circular(20),
                                         color: Colors.white,
-                    child: Container(
-                      decoration: BoxDecoration(
+                                        child: Container(
+                                          decoration: BoxDecoration(
                                             borderRadius:
                                                 BorderRadius.circular(20),
                                             color: Colors.white,
@@ -393,8 +560,9 @@ class _CoachScreenState extends State<CoachScreen>
                                               BoxShadow(
                                                 color: Colors.black
                                                     .withOpacity(0.05),
-                                                blurRadius: 4,
-                                                offset: Offset(0, 2),
+                                                blurRadius: 10,
+                                                offset: Offset(0, 5),
+                                                spreadRadius: 0,
                                               ),
                                             ],
                                           ),
@@ -431,35 +599,29 @@ class _CoachScreenState extends State<CoachScreen>
                                     child: GestureDetector(
                                       onTap: () =>
                                           _copyToClipboard(message.text),
-                                      child: Material(
-                                        elevation: 0,
-                        borderRadius: BorderRadius.circular(20),
-                                        color: message.isFromUser
-                                            ? Colors.black
-                                            : Colors.white,
-                                        child: Ink(
-                                          decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(20),
-                                            color: message.isFromUser
-                                                ? Colors.black
-                                                : Colors.white,
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: Colors.black
-                                                    .withOpacity(0.05),
-                                                blurRadius: 4,
-                                                offset: Offset(0, 2),
-                                              ),
-                                            ],
-                                          ),
-                                          child: Padding(
-                                            padding: EdgeInsets.symmetric(
-                                                horizontal: 16, vertical: 12),
-                                            child: _buildRichText(
-                                              message.text,
-                                              message.isFromUser,
+                    child: Container(
+                      decoration: BoxDecoration(
+                                          borderRadius:
+                                              BorderRadius.circular(20),
+                                          color: message.isFromUser
+                                              ? Colors.black
+                                              : Colors.white,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black
+                                                  .withOpacity(0.05),
+                                              blurRadius: 10,
+                                              offset: Offset(0, 5),
+                                              spreadRadius: 0,
                                             ),
+                                          ],
+                                        ),
+                                        child: Padding(
+                                          padding: EdgeInsets.symmetric(
+                                              horizontal: 16, vertical: 12),
+                                          child: _buildRichText(
+                                            message.text,
+                                            message.isFromUser,
                                           ),
                                         ),
                                       ),
@@ -582,36 +744,102 @@ class _CoachScreenState extends State<CoachScreen>
 
   Widget _buildRichText(String text, bool isFromUser) {
     final List<TextSpan> spans = [];
-    final RegExp exp = RegExp(r'\*\*(.*?)\*\*');
-    final matches = exp.allMatches(text);
 
-    int lastIndex = 0;
-    for (final match in matches) {
-      final start = match.start;
-      final end = match.end;
-      if (start > lastIndex) {
+    // First handle bold text formatted with ** around it
+    final RegExp boldPattern = RegExp(r'\*\*(.*?)\*\*');
+    final matches = boldPattern.allMatches(text);
+
+    // If no bold formatting is found, check for single * formatting
+    if (matches.isEmpty) {
+      final RegExp singleAsteriskPattern = RegExp(r'\*(.*?)\*');
+      final singleMatches = singleAsteriskPattern.allMatches(text);
+
+      int lastIndex = 0;
+      for (final match in singleMatches) {
+        final start = match.start;
+        final end = match.end;
+
+        // Add text before the bold part
+        if (start > lastIndex) {
+          spans.add(TextSpan(
+            text: text.substring(lastIndex, start),
+            style: TextStyle(
+              fontSize: 16,
+              color: isFromUser ? Colors.white : Colors.black,
+            ),
+          ));
+        }
+
+        // Add the bold text (without the * symbols)
         spans.add(TextSpan(
-          text: text.substring(lastIndex, start),
+          text: match.group(1),
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: isFromUser ? Colors.white : Colors.black,
+          ),
+        ));
+
+        lastIndex = end;
+      }
+
+      // Add remaining text after the last match
+      if (lastIndex < text.length) {
+        spans.add(TextSpan(
+          text: text.substring(lastIndex),
           style: TextStyle(
             fontSize: 16,
             color: isFromUser ? Colors.white : Colors.black,
           ),
         ));
       }
-      spans.add(TextSpan(
-        text: match.group(1),
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-          color: isFromUser ? Colors.white : Colors.black,
-        ),
-      ));
-      lastIndex = end;
+    } else {
+      // Process double-asterisk pattern as before
+      int lastIndex = 0;
+      for (final match in matches) {
+        final start = match.start;
+        final end = match.end;
+
+        // Add text before the bold part
+        if (start > lastIndex) {
+          spans.add(TextSpan(
+            text: text.substring(lastIndex, start),
+            style: TextStyle(
+              fontSize: 16,
+              color: isFromUser ? Colors.white : Colors.black,
+            ),
+          ));
+        }
+
+        // Add the bold text (without the ** symbols)
+        spans.add(TextSpan(
+          text: match.group(1),
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: isFromUser ? Colors.white : Colors.black,
+          ),
+        ));
+
+        lastIndex = end;
+      }
+
+      // Add remaining text after the last match
+      if (lastIndex < text.length) {
+        spans.add(TextSpan(
+          text: text.substring(lastIndex),
+          style: TextStyle(
+            fontSize: 16,
+            color: isFromUser ? Colors.white : Colors.black,
+          ),
+        ));
+      }
     }
 
-    if (lastIndex < text.length) {
+    // If no formatting was found at all, just return the plain text
+    if (spans.isEmpty) {
       spans.add(TextSpan(
-        text: text.substring(lastIndex),
+        text: text,
         style: TextStyle(
           fontSize: 16,
           color: isFromUser ? Colors.white : Colors.black,
@@ -620,9 +848,7 @@ class _CoachScreenState extends State<CoachScreen>
     }
 
     return RichText(
-      text: TextSpan(
-        children: spans,
-      ),
+      text: TextSpan(children: spans),
     );
   }
 
@@ -661,6 +887,19 @@ class _CoachScreenState extends State<CoachScreen>
 class Message {
   final String text;
   final bool isFromUser;
+  final DateTime timestamp;
 
-  Message({required this.text, required this.isFromUser});
+  Message({required this.text, required this.isFromUser})
+      : timestamp = DateTime.now();
+
+  Message.fromJson(Map<String, dynamic> json)
+      : text = json['text'],
+        isFromUser = json['isFromUser'],
+        timestamp = DateTime.parse(json['timestamp']);
+
+  Map<String, dynamic> toJson() => {
+        'text': text,
+        'isFromUser': isFromUser,
+        'timestamp': timestamp.toIso8601String(),
+      };
 }

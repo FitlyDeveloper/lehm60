@@ -3,10 +3,11 @@ import 'dart:math' as math;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'Memories.dart';
 import '../../NewScreens/ChooseWorkout.dart';
-import '../../NewScreens/Coach.dart';
+import '../../../NewScreens/Coach.dart';
 import 'flip_card.dart';
 import 'home_card2.dart';
 import '../../NewScreens/FoodCardOpen.dart';
+import 'package:flutter/gestures.dart';
 
 class CodiaPage extends StatefulWidget {
   CodiaPage({super.key});
@@ -35,229 +36,561 @@ class _CodiaPageState extends State<CodiaPage> {
   String userGymGoal =
       "null"; // FIXED: Default to "null" for balanced macros, not "Build Muscle"
 
+  // Simple diagnostic method to show just the key user data without all the noise
+  Future<void> _showBasicUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    print('\n========== BASIC USER DATA ==========');
+    print('ALL KEYS: ${prefs.getKeys()}');
+
+    // Print only the most important keys
+    List<String> keysToPrint = [
+      'gender',
+      'user_gender',
+      'weight',
+      'user_weight_kg',
+      'initialWeight',
+      'height',
+      'user_height_cm',
+      'heightInCm',
+      'birth_date',
+      'birthDate',
+      'goal',
+      'isGaining',
+      'goal_speed',
+      'speedValue'
+    ];
+
+    for (String key in keysToPrint) {
+      if (prefs.containsKey(key)) {
+        var value;
+        try {
+          value = prefs.getString(key) ??
+              prefs.getDouble(key) ??
+              prefs.getInt(key) ??
+              prefs.getBool(key);
+          print('$key = $value');
+        } catch (e) {
+          print('$key = ERROR: $e');
+        }
+      } else {
+        print('$key = NOT FOUND');
+      }
+    }
+
+    print('=====================================\n');
+  }
+
   @override
   void initState() {
     super.initState();
+
+    // First show just basic diagnostic info
+    _showBasicUserData();
+
+    // DEBUGGING HELPER - Uncomment to clear all preferences for testing
+    // resetOnboardingData();  // COMMENTING THIS OUT - IT WAS ERASING ALL REAL DATA!
+
     _loadUserData(); // Load the user's actual data from storage
   }
 
   // Load user data from SharedPreferences
   Future<void> _loadUserData() async {
-    isLoading = true;
+    debugPrint('Loading user data from SharedPreferences...');
 
-    final prefs = await SharedPreferences.getInstance();
+    try {
+      final prefs = await SharedPreferences.getInstance();
 
-    debugPrint('Loading user data and calculating nutrition needs...');
-    debugPrint('Keys in SharedPreferences: ${prefs.getKeys().toString()}');
-
-    // Debug - dump all data in the console to inspect
-    debugPrint('\nALL SHAREDPREFERENCES DATA:');
-    for (var key in prefs.getKeys()) {
-      if (key == 'user_weight_kg') {
-        debugPrint('$key: ${prefs.getDouble(key)}');
-      } else if (key == 'user_height_cm') {
-        debugPrint('$key: ${prefs.getInt(key)}');
-      } else if (key.contains('gender')) {
-        debugPrint('GENDER KEY FOUND: $key: ${prefs.getString(key)}');
-      } else {
+      // DEBUG: Print all SharedPreferences keys and values
+      debugPrint('All SharedPreferences data:');
+      final keys = prefs.getKeys();
+      for (final key in keys) {
         try {
-          debugPrint(
-              '$key: ${prefs.getString(key) ?? prefs.getDouble(key) ?? prefs.getInt(key) ?? prefs.getBool(key)}');
+          var value = prefs.get(key);
+          debugPrint('  $key: $value (${value.runtimeType})');
         } catch (e) {
-          debugPrint('$key: Error reading');
+          debugPrint('  $key: Error reading value - $e');
         }
       }
-    }
 
-    // Get birth date and calculate age exactly like before - this works correctly
-    String? birthDateStr = prefs.getString('birth_date');
-    debugPrint('Loaded birth_date: $birthDateStr');
+      // Load gender
+      if (prefs.containsKey('gender')) {
+        setState(() {
+          userGender = prefs.getString('gender') ?? 'Male';
+        });
+        debugPrint('Loaded gender: $userGender');
+      } else {
+        debugPrint('No gender found, using default: Male');
+      }
 
-    int age = 25; // Default age
-    if (birthDateStr != null) {
+      // Load weight with fallbacks
+      double weightInKg = 0.0;
+      bool weightFound = false;
+
+      // Try these keys in order for best chance of finding weight
+      final weightKeys = [
+        'user_weight_kg',
+        'weightInKg',
+        'weight_kg',
+        'weight'
+      ];
+
+      // First try to load weight as double from any key
+      for (final key in weightKeys) {
+        try {
+          if (prefs.containsKey(key) && !weightFound) {
+            final value = prefs.getDouble(key);
+            if (value != null && value > 0) {
+              weightInKg = value;
+              weightFound = true;
+              debugPrint(
+                  'Found weight as double in key: $key = $weightInKg kg');
+              break;
+            }
+          }
+        } catch (e) {
+          debugPrint('Error reading weight from $key as double: $e');
+        }
+      }
+
+      // If weight not found as double, try integers
+      if (!weightFound) {
+        for (final key in weightKeys) {
+          try {
+            if (prefs.containsKey(key)) {
+              final value = prefs.getInt(key);
+              if (value != null && value > 0) {
+                weightInKg = value.toDouble();
+                weightFound = true;
+                debugPrint('Found weight as int in key: $key = $weightInKg kg');
+                break;
+              }
+            }
+          } catch (e) {
+            debugPrint('Error reading weight from $key as int: $e');
+          }
+        }
+      }
+
+      // Set default weight if not found
+      if (!weightFound || weightInKg <= 0) {
+        weightInKg = 70.0;
+        debugPrint('No valid weight found, using default: $weightInKg kg');
+      }
+
+      setState(() {
+        userWeightKg = weightInKg;
+      });
+      debugPrint('Final weight set to: $userWeightKg kg');
+
+      // FIXED HEIGHT LOADING LOGIC - similar to working weight logic
+      double heightInCm = 0.0;
+      bool heightFound = false;
+
+      // Define height keys to check in order of preference
+      final heightKeys = [
+        'user_height_cm',
+        'heightInCm',
+        'height_cm',
+        'height'
+      ];
+
+      // First try to retrieve height as an INT from specific keys (in priority order)
+      for (final key in ['user_height_cm', 'height']) {
+        try {
+          if (prefs.containsKey(key) && !heightFound) {
+            final value = prefs.getInt(key);
+            if (value != null && value > 0) {
+              heightInCm = value.toDouble();
+              heightFound = true;
+              debugPrint('Found height as INT in key: $key = $heightInCm cm');
+              break;
+            }
+          }
+        } catch (e) {
+          debugPrint('Error reading height from $key as int: $e');
+        }
+      }
+
+      // If height not found as int in priority keys, try as DOUBLE from any key
+      if (!heightFound) {
+        for (final key in heightKeys) {
+          try {
+            if (prefs.containsKey(key)) {
+              final value = prefs.getDouble(key);
+              if (value != null && value > 0) {
+                heightInCm = value;
+                heightFound = true;
+                debugPrint(
+                    'Found height as DOUBLE in key: $key = $heightInCm cm');
+                break;
+              }
+            }
+          } catch (e) {
+            debugPrint('Error reading height from $key as double: $e');
+          }
+        }
+      }
+
+      // Last resort: check all remaining keys as INT if we still haven't found height
+      if (!heightFound) {
+        for (final key in heightKeys) {
+          try {
+            if (prefs.containsKey(key)) {
+              final value = prefs.getInt(key);
+              if (value != null && value > 0) {
+                heightInCm = value.toDouble();
+                heightFound = true;
+                debugPrint(
+                    'Found height as INT (last resort) in key: $key = $heightInCm cm');
+                break;
+              }
+            }
+          } catch (e) {
+            debugPrint(
+                'Error reading height from $key as int (last resort): $e');
+          }
+        }
+      }
+
+      // Set default height if not found
+      if (!heightFound || heightInCm <= 0) {
+        heightInCm = 170.0;
+        debugPrint('No valid height found, using default: $heightInCm cm');
+      }
+
+      setState(() {
+        userHeightCm = heightInCm;
+      });
+      debugPrint('Final height set to: $userHeightCm cm');
+
+      // ----- AGE -----
+      print('\nLOADING AGE:');
+      int age = 25; // Default age
+
+      // Try multiple keys for birth date
+      List<String> birthDateKeys = [
+        'birth_date',
+        'birthDate',
+        'user_birth_date',
+        'dob'
+      ];
+      String? birthDateStr;
+
+      for (String key in birthDateKeys) {
+        if (prefs.containsKey(key)) {
+          birthDateStr = prefs.getString(key);
+          print('Found birth date in key "$key": $birthDateStr');
+          break;
+        }
+      }
+
+      if (birthDateStr != null) {
+        try {
+          DateTime birthDate = DateTime.parse(birthDateStr);
+          DateTime today = DateTime.now();
+          age = today.year - birthDate.year;
+          if (today.month < birthDate.month ||
+              (today.month == birthDate.month && today.day < birthDate.day)) {
+            age--;
+          }
+
+          // Only check for maximum age (130)
+          if (age > 130) {
+            print('WARNING: Age over 130, capping at 130');
+            age = 130;
+          }
+
+          print(
+              'Successfully calculated age: $age from birth date: $birthDateStr');
+        } catch (e) {
+          print('Error parsing birth date: $e');
+        }
+      } else {
+        // Try to get age directly if birth date not found
+        if (prefs.containsKey('user_age')) {
+          age = prefs.getInt('user_age') ?? 25;
+          print('Found age directly: $age');
+        } else {
+          print('No birth date or age found, using default: $age');
+        }
+      }
+
+      // ----- GOAL -----
+      print('\nLOADING GOAL:');
+      List<String> goalKeys = ['goal', 'userGoal', 'weight_goal'];
+      String goal = 'maintain'; // Default
+
+      for (String key in goalKeys) {
+        if (prefs.containsKey(key)) {
+          String? foundGoal = prefs.getString(key);
+          if (foundGoal != null) {
+            goal = foundGoal;
+            print('Found goal in key "$key": $goal');
+            break;
+          }
+        }
+      }
+
+      // Additional check for isGaining which might indicate goal
+      if (prefs.containsKey('isGaining')) {
+        bool? isGaining = prefs.getBool('isGaining');
+        if (isGaining != null) {
+          // Only use isGaining flag if isMaintaining isn't set to true
+          bool isMaintaining = prefs.getBool('isMaintaining') ?? false;
+          if (!isMaintaining) {
+            goal = isGaining ? 'gain' : 'lose';
+            print('Found isGaining flag: $isGaining, setting goal to: $goal');
+          } else {
+            print(
+                'Found isMaintaining=true, maintaining "maintain" goal even with isGaining present');
+          }
+        }
+      }
+      print('Final goal value: $goal');
+
+      // ----- GYM GOAL -----
+      print('\nLOADING GYM GOAL:');
+      List<String> gymGoalKeys = [
+        'gymGoal',
+        'gym_goal',
+        'fitnessGoal',
+        'fitness_goal'
+      ];
+      String? gymGoal;
+
+      for (String key in gymGoalKeys) {
+        if (prefs.containsKey(key)) {
+          gymGoal = prefs.getString(key);
+          if (gymGoal != null) {
+            print('Found gym goal in key "$key": $gymGoal');
+            break;
+          }
+        }
+      }
+      print('Final gym goal value: ${gymGoal ?? "null"}');
+
+      // ----- GOAL SPEED -----
+      print('\nLOADING GOAL SPEED:');
+      List<String> goalSpeedKeys = [
+        'goal_speed',
+        'goalSpeed',
+        'targetRate',
+        'target_rate',
+        'goal_speed_kg_per_week', // This key explicitly indicates kg units
+      ];
+      double goalSpeed = 0.0; // Default
+      double originalGoalSpeed = 0.0; // Store original for display
+      String speedUnit = 'kg/week'; // Default
+
+      // First, try to find any goal_speed_kg_per_week which is guaranteed to be in kg
       try {
-        DateTime birthDate = DateTime.parse(birthDateStr);
-        age = DateTime.now().year - birthDate.year;
-        if (DateTime.now().month < birthDate.month ||
-            (DateTime.now().month == birthDate.month &&
-                DateTime.now().day < birthDate.day)) {
-          age--;
+        if (prefs.containsKey('goal_speed_kg_per_week')) {
+          double? speedKg = prefs.getDouble('goal_speed_kg_per_week');
+          if (speedKg != null) {
+            goalSpeed = speedKg;
+            originalGoalSpeed = goalSpeed;
+            speedUnit = 'kg/week';
+            print('Found goal speed in kg: $goalSpeed kg/week');
+          }
         }
-        debugPrint(
-            'Successfully calculated age: $age from birth date: $birthDateStr');
       } catch (e) {
-        debugPrint('Error parsing birth date: $e');
+        print('Error reading goal_speed_kg_per_week: $e');
       }
+
+      // If we didn't find the kg-specific key, check other keys
+      if (goalSpeed == 0.0) {
+        // Try other keys
+        for (String key in goalSpeedKeys) {
+          if (key == 'goal_speed_kg_per_week') continue; // Already checked
+
+          try {
+            if (prefs.containsKey(key)) {
+              double? speed = prefs.getDouble(key);
+              if (speed != null) {
+                goalSpeed = speed;
+                originalGoalSpeed = goalSpeed;
+                print('Found goal speed in key "$key": $goalSpeed');
+                break;
+              }
+
+              // Try as int if double fails
+              int? speedInt = prefs.getInt(key);
+              if (speedInt != null) {
+                goalSpeed = speedInt.toDouble();
+                originalGoalSpeed = goalSpeed;
+                print('Found goal speed (as int) in key "$key": $goalSpeed');
+                break;
+              }
+            }
+          } catch (e) {
+            print('Error reading goal speed from key "$key": $e');
+          }
+        }
+        print('Original goal speed: $originalGoalSpeed');
+      }
+
+      // ----- METRIC SETTING -----
+      print('\nLOADING METRIC SETTING:');
+      List<String> metricKeys = ['is_metric', 'isMetric', 'useMetric'];
+      bool isMetric = false; // Default to imperial
+
+      for (String key in metricKeys) {
+        if (prefs.containsKey(key)) {
+          bool? metric = prefs.getBool(key);
+          if (metric != null) {
+            isMetric = metric;
+            print('Found metric setting in key "$key": $isMetric');
+            break;
+          }
+        }
+      }
+
+      // Calculate if we need to convert units
+      bool isImperialUnits = !isMetric;
+
+      // Auto-detect if values suggest imperial units
+      if (weightInKg > 100) {
+        print('Weight > 100kg suggests imperial units (pounds)');
+        isImperialUnits = true;
+      }
+
+      // CRITICAL: Handle goal speed units correctly based on metric setting
+      // If isMetric is true: goalSpeed is in kg/week
+      // If isMetric is false (imperial): goalSpeed is in lb/week and needs conversion to kg for calculations
+
+      double displayGoalSpeed = goalSpeed;
+      bool speedWasInImperial = !isMetric; // Default based on unit system
+
+      // If we're using imperial units, process accordingly
+      if (isImperialUnits && goal != 'maintain') {
+        // Convert weight if needed
+        if (weightInKg > 100) {
+          double oldWeight = weightInKg;
+          weightInKg = weightInKg * 0.453592;
+          print(
+              'Converting weight from lbs to kg: $oldWeight lbs → $weightInKg kg');
+        }
+
+        // Handle goal speed for imperial systems - it's in lb/week and needs conversion
+        // UNLESS we got it from goal_speed_kg_per_week which is already in kg
+        speedWasInImperial = true;
+        speedUnit = 'lb/week';
+        displayGoalSpeed = goalSpeed; // Store original value for display
+
+        // Check if we got the value from the kg-specific key
+        if (prefs.containsKey('goal_speed_kg_per_week')) {
+          print('Using goal speed already in kg: $goalSpeed kg/week');
+          speedWasInImperial = false;
+          speedUnit = 'kg/week';
+        } else if (goalSpeed > 0) {
+          // This is in lb/week and needs conversion to kg for calculations
+          double oldSpeed = goalSpeed;
+          goalSpeed = goalSpeed * 0.453592; // Convert to kg/week
+          print(
+              'Converting goal speed from lb/week to kg/week: $oldSpeed lb/week → $goalSpeed kg/week');
+        }
+      }
+
+      // Set goal speed to 0 for maintain
+      if (goal == 'maintain') {
+        print('Goal is maintain, setting goal speed to 0');
+        goalSpeed = 0.0;
+        displayGoalSpeed = 0.0;
+      }
+
+      // NORMALIZE GOAL SPEED to exact increments - but only for display or for metric values
+      if (goal != 'maintain' && goalSpeed > 0) {
+        // For display value, round to exactly 1 decimal place
+        displayGoalSpeed = (displayGoalSpeed * 10).round() / 10.0;
+
+        if (speedWasInImperial) {
+          print(
+              'Normalized display goal speed to ${displayGoalSpeed.toStringAsFixed(1)} lb/week');
+        } else {
+          print(
+              'Normalized display goal speed to ${displayGoalSpeed.toStringAsFixed(1)} kg/week');
+        }
+
+        // For the actual calculation value, also normalize to 1 decimal
+        goalSpeed = (goalSpeed * 10).round() / 10.0;
+        print(
+            'Normalized calculation goal speed to ${goalSpeed.toStringAsFixed(1)} kg/week');
+      }
+
+      // Round weight to 1 decimal place
+      weightInKg = (weightInKg * 10).round() / 10;
+
+      // Ensure height is a whole number
+      heightInCm = heightInCm.round().toDouble();
+
+      // Update state with loaded values
+      setState(() {
+        userGender = prefs.getString('gender') ?? 'Male';
+        userWeightKg = weightInKg;
+        userHeightCm = heightInCm;
+        userAge = age;
+        userGoal = goal;
+        goalSpeedKgPerWeek = goalSpeed;
+        userGymGoal = gymGoal ?? "null"; // Handle null case
+        isImperial = isImperialUnits;
+        originalGoalSpeed = originalGoalSpeed;
+
+        // Calculate calories now that all data is loaded
+        _updateCalculatedValues();
+      });
+
+      print('\nFINAL VALUES USED:');
+      print('- Age: $userAge');
+      print('- Gender: "$userGender"');
+      print('- Weight: ${(userWeightKg * 10).round() / 10.0} kg');
+
+      // Display height in appropriate units
+      if (isImperialUnits) {
+        // Convert cm to inches
+        double heightInches = userHeightCm / 2.54;
+        int feet = (heightInches / 12).floor();
+        int inches = (heightInches % 12).round();
+        print('- Height: ${userHeightCm.round()} cm (${feet}\'${inches}")');
+      } else {
+        print('- Height: ${userHeightCm.round()} cm');
+      }
+
+      print('- Goal: "$userGoal"');
+      print('- Gym Goal: $userGymGoal');
+      // Display the goal speed in the appropriate units
+      if (isImperialUnits && speedWasInImperial) {
+        print(
+            '- Goal Speed: ${displayGoalSpeed.toStringAsFixed(1)} $speedUnit');
+      } else {
+        print('- Goal Speed: ${goalSpeedKgPerWeek.toStringAsFixed(1)} kg/week');
+      }
+      print('- Target Calories: $targetCalories');
+    } catch (e) {
+      print('Error loading user data: $e');
     }
+  }
 
-    // Read the user's gender selection
-    String gender;
+  // Update UI state with calculated values
+  void _updateCalculatedValues() {
+    // Directly use the same calculation method as calculation_screen.dart
+    double calculatedValue = _calculateTargetCalories();
 
-    // Check SharedPreferences for gender (reduced logging)
-    if (prefs.containsKey('user_gender')) {
-      gender = prefs.getString('user_gender')!;
-    } else if (prefs.containsKey('gender')) {
-      gender = prefs.getString('gender')!;
-    } else {
-      gender = 'Female'; // Default to Female if no gender found
-    }
-    debugPrint('Using gender: "$gender"');
-
-    // Get goal - exact same key as in speed_screen
-    String goal = prefs.getString('goal') ?? 'maintain';
-    debugPrint('Loaded goal from SharedPreferences: "$goal"');
-
-    // CRITICAL CHECK: Explicitly look for 'maintain' goal
-    bool isMaintaining = goal == 'maintain';
-    if (isMaintaining) {
-      debugPrint('DETECTED MAINTAIN GOAL - will use TDEE with no adjustment');
-    } else {
-      debugPrint('Goal is not maintain: "$goal"');
-    }
-
-    // Get gym goal - used for macro distribution
-    String? gymGoal = prefs.getString('gymGoal');
-    debugPrint('Loaded gymGoal: "$gymGoal"');
-
-    // Check if gymGoal is different from common values
-    if (gymGoal != null) {
-      debugPrint('Found gymGoal in SharedPreferences: "$gymGoal"');
-    } else {
-      debugPrint(
-          'gymGoal is NULL in SharedPreferences, will default to "null" string');
-    }
-
-    // Get goal speed multiplier - exact same key as in speed_screen
-    double goalSpeed = prefs.getDouble('goal_speed') ?? 1.0;
-    double originalGoalSpeed = goalSpeed; // Store original value for logging
-
-    // Get is_metric setting if available
-    bool isMetric = prefs.getBool('is_metric') ??
-        false; // Default to false (imperial) to be safe
-
-    // FIXED DETECTION: We need to determine if we're in imperial units
-    // Since the is_metric flag isn't being saved to SharedPreferences, detect based on:
-    // 1. If weightInKg is unusually high (American weights are ~2.2x higher in lbs than kg)
-    // 2. If goalSpeed is a common imperial value (usually 1-2 lbs/week)
-    bool isLikelyImperial = false;
-
-    // Get weight using exact same key as weight_height_screen and weight_height_copy_screen
-    double weightInKg = prefs.getDouble('user_weight_kg') ?? 70.0;
-    debugPrint('Loaded weight: $weightInKg kg');
-
-    // If weight is >100kg, it's likely in pounds
-    if (weightInKg > 100) {
-      isLikelyImperial = true;
-      debugPrint('Detected imperial units from high weight value: $weightInKg');
-    }
-
-    // If goal speed is a common imperial value and not a clean metric value
-    if (goalSpeed >= 0.5 && goalSpeed <= 2.0 && goalSpeed % 0.5 == 0) {
-      isLikelyImperial = true;
-      debugPrint(
-          'Detected imperial units from typical imperial goal speed: $goalSpeed lb/week');
-    }
-
-    // Override the setting if we detected imperial units
-    if (isLikelyImperial) {
-      isMetric = false;
-    }
-
-    // Final determination of units
-    isImperial = !isMetric;
-    debugPrint(
-        'Unit system: ${isMetric ? "Metric" : "Imperial"} (${isLikelyImperial ? "detected from values" : "from settings"})');
-
-    // Only convert if using imperial units
-    if (isImperial) {
-      // Convert from lb/week to kg/week (1 lb ≈ 0.453592 kg)
-      goalSpeed = goalSpeed * 0.453592;
-
-      // Round to 1 decimal place immediately after conversion
-      goalSpeed = double.parse(goalSpeed.toStringAsFixed(1));
-
-      debugPrint(
-          'UNIT CONVERSION: $originalGoalSpeed lb/week → $goalSpeed kg/week');
-    } else {
-      // Still round metric values to 1 decimal place for consistency
-      goalSpeed = double.parse(goalSpeed.toStringAsFixed(1));
-      debugPrint(
-          'No unit conversion needed: $goalSpeed kg/week (already metric)');
-    }
-
-    // Set goal speed to 0.0 if goal is maintain - CRITICAL FIX
-    if (isMaintaining) {
-      debugPrint('Goal is "maintain", setting goalSpeed to 0.0');
-      goalSpeed = 0.0;
-    } else {
-      debugPrint('Goal is "$goal", keeping goalSpeed at $goalSpeed');
-    }
-
-    // Clearer debug message showing original and final values
-    if (isImperial) {
-      debugPrint(
-          'Final goal_speed: $goalSpeed kg/week (converted from $originalGoalSpeed lb/week)');
-    } else {
-      debugPrint('Final goal_speed: $goalSpeed kg/week');
-    }
-
-    // Get height using exact same key as weight_height_screen and weight_height_copy_screen
-    int heightCm = prefs.getInt('user_height_cm') ?? 165;
-    debugPrint('Loaded height: $heightCm cm');
-
-    // Update state with loaded values
+    // Set exact same value to display in UI
     setState(() {
-      userGender = gender;
-      userWeightKg = weightInKg;
-      userHeightCm = heightCm.toDouble();
-      userAge = age;
-      userGoal = goal;
-      goalSpeedKgPerWeek = goalSpeed;
-      dailyCalorieAdjustment =
-          goalSpeed * 1100.0; // Approx 1100 calories per kg
-      userGymGoal = gymGoal ?? "null"; // Handle null case
-      targetCalories = _calculateTargetCalories().toInt();
+      targetCalories = calculatedValue.toInt();
       remainingCalories = targetCalories; // Set remaining to target initially
       isLoading = false;
     });
 
-    // Log final values with clearer unit information
-    debugPrint('FINAL VALUES:');
-    debugPrint('- Age: $userAge');
-    debugPrint('- Gender: "$userGender"');
-    debugPrint('- Weight: $userWeightKg kg');
-    debugPrint('- Height: $userHeightCm cm');
-    debugPrint('- Goal: "$userGoal"');
-    debugPrint('- Gym Goal: $userGymGoal');
-
-    // Show both imperial and metric values if using imperial
-    if (isImperial) {
-      debugPrint(
-          '- Goal Speed: $goalSpeedKgPerWeek kg/week (equivalent to $originalGoalSpeed lb/week)');
-    } else {
-      debugPrint('- Goal Speed: $goalSpeedKgPerWeek kg/week');
-    }
-
-    debugPrint('- Target Calories: $targetCalories');
+    print(
+        "FINAL CALCULATED TARGET CALORIES (EXACTLY MATCHING CALCULATION_SCREEN): $targetCalories");
   }
 
-  // Calculate target calories based on user data
+  // Calculate target calories based on user data - EXACT COPY FROM CALCULATION_SCREEN.DART
   double _calculateTargetCalories() {
-    // Add debug print to catch test data
-    if (userWeightKg == 65.0 && userHeightCm == 170.0) {
-      print(
-          'WARNING: DETECTED TEST DATA SET! Using fixed values of 65kg and 170cm.');
-      print(
-          'This is likely happening because _setTestUserData() is being called somewhere.');
-
-      // Load real data from SharedPreferences again if needed
-      // Uncomment this to force loading real data:
-      // _loadUserData();
-      // return 0.0; // Return early and let _loadUserData update the state
-    }
-
-    // Print input values
-    print('CALCULATION INPUTS:');
+    // Print input values for debugging
+    print('CALCULATION INPUTS (Codia Page):');
     print('- Gender: "$userGender"');
     print('- Weight: $userWeightKg kg');
     print('- Height: $userHeightCm cm');
@@ -265,91 +598,138 @@ class _CodiaPageState extends State<CodiaPage> {
     print('- Goal: "$userGoal"');
     print('- Goal Speed: $goalSpeedKgPerWeek kg/week');
     print('- Gym Goal: "$userGymGoal"');
-    if (isImperial) {
-      print('  (Original: $originalGoalSpeed lb/week)');
+    print('- Is Imperial: $isImperial');
+
+    // Convert measurements for consistency with calculation_screen.dart
+    final weightInKg = userWeightKg;
+    final heightInCm = userHeightCm;
+    final gender = userGender;
+    final birthDate = DateTime.now().subtract(Duration(days: 365 * userAge));
+    final isGaining = userGoal == 'gain';
+    double speedValue = goalSpeedKgPerWeek;
+    final isMetric = !isImperial;
+    final gymGoal = userGymGoal;
+
+    print('Normalized values:');
+    print('- Weight in kg: $weightInKg');
+    print('- Height in cm: $heightInCm');
+    print('- Speed: $speedValue ${isMetric ? 'kg' : 'lbs'}/week');
+    print('- Units: ${isMetric ? 'Metric' : 'Imperial'}');
+
+    // NORMALIZE GOAL SPEED to exact increments - EXACT COPY FROM CALCULATION_SCREEN
+    double normalizedSpeed = speedValue;
+    if (speedValue > 0) {
+      if (isMetric) {
+        // Round to exactly 1 decimal place
+        normalizedSpeed = (speedValue * 10).round() / 10.0;
+        print(
+            'Normalized goal speed from $speedValue to ${normalizedSpeed.toStringAsFixed(1)} kg/week');
+      } else {
+        // For imperial units, speedValue is already in kg, so convert to lbs first for display
+        double speedInLbs = speedValue / 0.453592;
+        // Then round to exactly 1 decimal place
+        double displaySpeed = (speedInLbs * 10).round() / 10.0;
+        print(
+            'Display speed in pounds: ${displaySpeed.toStringAsFixed(1)} lb/week');
+
+        // But keep using the kg value for calculations
+        normalizedSpeed = (speedValue * 10).round() / 10.0;
+        print(
+            'Normalized goal speed (kept in kg): ${normalizedSpeed.toStringAsFixed(1)} kg/week');
+      }
     }
 
-    // Calculate BMR (Mifflin-St Jeor Formula)
-    double bmr;
-    if (userGender == "Female") {
-      bmr = (10 * userWeightKg) + (6.25 * userHeightCm) - (5 * userAge) - 161;
-    } else if (userGender == "Male") {
-      bmr = (10 * userWeightKg) + (6.25 * userHeightCm) - (5 * userAge) + 5;
+    // Round weightInKg to 1 decimal place - EXACT COPY FROM CALCULATION_SCREEN
+    double roundedWeightKg = (weightInKg * 10).round() / 10.0;
+
+    // Ensure height is a whole number - EXACT COPY FROM CALCULATION_SCREEN
+    int roundedHeight = heightInCm.round();
+
+    // Calculate TDEE first using rounded values - EXACT COPY FROM CALCULATION_SCREEN
+    int tdee = calculateTDEE(
+      gender: gender,
+      weightKg: roundedWeightKg.round(), // Use rounded weight
+      heightCm: roundedHeight, // Use rounded height
+      userAge: userAge, // Use the calculated age
+    );
+
+    print('TDEE calculated: $tdee');
+
+    // Calculate daily deficit/surplus - EXACT COPY FROM CALCULATION_SCREEN
+    int dailyDeficit = 0;
+
+    if (userGoal == 'maintain') {
+      dailyDeficit = 0;
+      print('Goal is maintain, deficit = 0');
     } else {
-      // Default to female formula for "Other"
-      bmr = (10 * userWeightKg) + (6.25 * userHeightCm) - (5 * userAge) - 161;
+      if (isMetric) {
+        // Metric: Use 7700 kcal per kg
+        // Do NOT round the deficit calculation to maintain precision for small values
+        double exactMetricDeficit = normalizedSpeed * 7700 / 7;
+        dailyDeficit =
+            exactMetricDeficit.floor(); // Weekly kg to daily calories
+        print(
+            'Metric calculation: ${normalizedSpeed.toStringAsFixed(3)} kg/week × 7700 ÷ 7 = ${exactMetricDeficit.toStringAsFixed(3)} → $dailyDeficit calories/day');
+      } else {
+        // Imperial: Use 3500 kcal per lb
+        // However, we're still using kg value for normalizedSpeed, so convert to lb first
+        double speedInLbs = normalizedSpeed / 0.453592;
+        double displaySpeedLb = (speedInLbs * 10).round() / 10.0;
+
+        // Calculate deficit using pounds formula
+        double exactDeficit = speedInLbs * 3500 / 7;
+        dailyDeficit = exactDeficit.floor(); // Weekly lbs to daily calories
+        print(
+            'Imperial calculation: ${displaySpeedLb.toStringAsFixed(1)} lb/week × 3500 ÷ 7 = ${exactDeficit.toStringAsFixed(3)} → $dailyDeficit calories/day');
+      }
     }
 
-    // Calculate TDEE with activity level
-    // We'll use different multipliers based on activity level
-    // 1.2: Sedentary (little or no exercise)
-    // 1.375: Lightly active (light exercise/sports 1-3 days/week)
-    // 1.55: Moderately active (moderate exercise/sports 3-5 days/week)
-    // 1.725: Very active (hard exercise/sports 6-7 days a week)
-    // 1.9: Extra active (very hard exercise, physical job or training twice a day)
-    double activityMultiplier = 1.2; // Assuming sedentary as default
-    double tdee = bmr * activityMultiplier;
+    print('Daily deficit calculated: $dailyDeficit');
 
-    // Calculate Daily Calorie Adjustment based on Goal Speed
-    double weeklyCalorieAdjustment =
-        goalSpeedKgPerWeek * 7700; // 7700 kcal ≈ 1kg
-    dailyCalorieAdjustment = weeklyCalorieAdjustment / 7;
-
-    // Print clear debugging info about the goal and what we're doing
-    print('GOAL PROCESSING:');
-    print('- User goal from SharedPreferences: "$userGoal"');
-    print('- Goal speed from SharedPreferences: $goalSpeedKgPerWeek kg/week');
-
-    // FIX: Calculate Final Target Calories based on Goal correctly
-    // IMPORTANT: Use the exact same approach as in calculation_screen.dart
-    double targetCalories;
-    if (userGoal == 'lose') {
-      print(
-          '- Goal identified as LOSE WEIGHT - subtracting daily adjustment from TDEE');
-      targetCalories = tdee - dailyCalorieAdjustment;
-    } else if (userGoal == 'gain') {
-      print(
-          '- Goal identified as GAIN WEIGHT - adding daily adjustment to TDEE');
-      targetCalories = tdee + dailyCalorieAdjustment;
+    // Calculate final target calories - EXACT COPY FROM CALCULATION_SCREEN
+    double rawCalculatedCalories;
+    if (userGoal == 'gain') {
+      rawCalculatedCalories = tdee.toDouble() + dailyDeficit.toDouble();
+    } else if (userGoal == 'lose') {
+      rawCalculatedCalories = tdee.toDouble() - dailyDeficit.toDouble();
     } else {
       // maintain - use TDEE directly with no adjustment
-      print(
-          '- Goal identified as MAINTAIN WEIGHT - using TDEE with no adjustment');
-      targetCalories = tdee;
-      // For maintain goal, ensure daily adjustment is 0
-      dailyCalorieAdjustment = 0;
+      rawCalculatedCalories = tdee.toDouble();
     }
 
-    // Print calculation steps for debugging
-    print('CALCULATION STEPS:');
-    print('- BMR: $bmr calories/day');
-    print('- Activity Multiplier: $activityMultiplier');
-    print('- TDEE (BMR * Activity): $tdee calories/day');
-    print(
-        '- Weekly Calorie Adjustment: ${weeklyCalorieAdjustment.toStringAsFixed(0)} calories (${goalSpeedKgPerWeek.toStringAsFixed(1)} kg × 7700)');
-    print(
-        '- Daily Calorie Adjustment: ${dailyCalorieAdjustment.toStringAsFixed(0)} calories/day');
-    print(
-        '- Target Calories (before minimum): ${targetCalories.toStringAsFixed(0)} calories/day');
+    print('Raw calculated calories before flooring: $rawCalculatedCalories');
 
-    // Set a minimum healthy calorie limit
-    double minimumCalories = userGender == "Male" ? 1500 : 1200;
-    if (targetCalories < minimumCalories && userGoal == 'lose') {
-      print(
-          '- Warning: Calculated target below minimum. Using $minimumCalories calories/day instead');
-      targetCalories = minimumCalories;
+    // Ensure the calories match exactly with calculation_screen.dart by using floor
+    int calculatedCalories = rawCalculatedCalories.floorToDouble().toInt();
+
+    print('Final target calories (floored): $calculatedCalories');
+
+    return calculatedCalories.toDouble();
+  }
+
+  // TDEE calculation - EXACT COPY FROM CALCULATION_SCREEN
+  int calculateTDEE({
+    required String gender,
+    required int weightKg,
+    required int heightCm,
+    required int userAge,
+  }) {
+    // BMR using Mifflin-St Jeor Equation
+    double bmr;
+    if (gender == 'Female') {
+      bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * userAge) - 161;
+    } else if (gender == 'Male') {
+      bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * userAge) + 5;
+    } else {
+      // Default to female formula for "Other"
+      bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * userAge) - 161;
     }
 
-    // Final debug statement to confirm actual values used in calculation
-    debugPrint('FINAL CALCULATION RESULT:');
-    debugPrint('- Weight: $userWeightKg kg');
-    debugPrint('- Height: $userHeightCm cm');
-    debugPrint('- Age: $userAge');
-    debugPrint('- Gender: "$userGender"');
-    debugPrint('- Goal: "$userGoal"');
-    debugPrint('- Target Calories: ${targetCalories.toInt()} calories/day');
+    // Apply activity multiplier (1.2 for sedentary - little/no exercise)
+    final tdee = bmr * 1.2;
+    print('BMR calculated: $bmr, TDEE with multiplier: $tdee');
 
-    return targetCalories;
+    return tdee.round();
   }
 
   @override
@@ -426,40 +806,66 @@ class _CodiaPageState extends State<CodiaPage> {
                       ),
 
                       // Streak icon with count
-                      Container(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        width: 70, // Fixed width
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 4,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Image.asset(
-                              'assets/images/streak0.png',
-                              width: 19.4,
-                              height: 19.4,
-                            ),
-                            const SizedBox(width: 4),
-                            const Text(
-                              '0',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.black,
-                                decoration: TextDecoration.none,
+                      GestureDetector(
+                        onTap: () async {
+                          // Debug helper - dump SharedPreferences data to console
+                          final prefs = await SharedPreferences.getInstance();
+                          print(
+                              '\n========== DEBUG: PREFERENCES DUMP ==========');
+                          print('Keys: ${prefs.getKeys()}');
+                          for (String key in prefs.getKeys()) {
+                            try {
+                              var value;
+                              if (prefs.getString(key) != null)
+                                value = prefs.getString(key);
+                              else if (prefs.getDouble(key) != null)
+                                value = prefs.getDouble(key);
+                              else if (prefs.getInt(key) != null)
+                                value = prefs.getInt(key);
+                              else if (prefs.getBool(key) != null)
+                                value = prefs.getBool(key);
+                              print('$key: $value');
+                            } catch (e) {
+                              print('Error reading $key: $e');
+                            }
+                          }
+                          print('==========================================\n');
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          width: 70, // Fixed width
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 4,
+                                offset: Offset(0, 2),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Image.asset(
+                                'assets/images/streak0.png',
+                                width: 19.4,
+                                height: 19.4,
+                              ),
+                              const SizedBox(width: 4),
+                              const Text(
+                                '0',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.black,
+                                  decoration: TextDecoration.none,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -583,12 +989,11 @@ class _CodiaPageState extends State<CodiaPage> {
                       Expanded(
                         child: GestureDetector(
                           onTap: () {
-                            // Navigate to Coach screen
+                            print("Navigating to Coach screen");
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => CoachScreen(),
-                              ),
+                                  builder: (context) => CoachScreen()),
                             );
                           },
                           child: Container(
@@ -1088,22 +1493,18 @@ class _CodiaPageState extends State<CodiaPage> {
     // Don't recalculate here - use the value calculated in _loadUserData
     double caloriesToShow = targetCalories.toDouble();
 
-    // Calculate TDEE for maintenance display
-    double bmr;
-    if (userGender == "Female") {
-      bmr = (10 * userWeightKg) + (6.25 * userHeightCm) - (5 * userAge) - 161;
-    } else if (userGender == "Male") {
-      bmr = (10 * userWeightKg) + (6.25 * userHeightCm) - (5 * userAge) + 5;
-    } else {
-      // Default to female formula for "Other"
-      bmr = (10 * userWeightKg) + (6.25 * userHeightCm) - (5 * userAge) - 161;
-    }
-    double activityMultiplier = 1.2; // Assuming sedentary as default
-    double maintenanceCalories = bmr * activityMultiplier;
+    // Calculate TDEE for maintenance display - USING EXACTLY THE SAME METHOD AS calculateTDEE()
+    int maintenanceCalories = calculateTDEE(
+      gender: userGender,
+      weightKg: ((userWeightKg * 10).round() / 10.0)
+          .round(), // Round to 1 decimal then to int
+      heightCm: userHeightCm.round(), // Make sure height is whole number
+      userAge: userAge, // Use the calculated age
+    );
 
     // When goal is maintain, ensure deficit shows same value as remaining calories
     if (userGoal == 'maintain') {
-      maintenanceCalories = caloriesToShow;
+      maintenanceCalories = caloriesToShow.toInt();
     }
 
     // Define macro distribution based on gym goal
@@ -1443,6 +1844,36 @@ class _CodiaPageState extends State<CodiaPage> {
         ],
       ),
     );
+  }
+
+  // For testing/debugging only - clears preferences and forces defaults
+  Future<void> resetOnboardingData() async {
+    print('\n========== CLEARING ALL SHARED PREFERENCES ==========');
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    print('All SharedPreferences data cleared');
+
+    // Set test data for verifying calculations
+    await prefs.setString('gender', 'Male');
+    await prefs.setDouble('user_weight_kg', 66.0);
+
+    // CRITICAL FIX: For users who selected imperial units and entered height in feet/inches,
+    // we need to store height in cm after converting. Assuming 6'1" = 73 inches = 185.42 cm
+    // This simulates how onboarding screens should save height when using imperial units
+    int heightInCm = 185; // 6'1" converted to cm
+    await prefs.setInt('user_height_cm', heightInCm);
+    await prefs.setDouble('heightInCm', heightInCm.toDouble());
+
+    // Store indicator that we're using imperial units
+    await prefs.setBool('is_metric', false);
+
+    await prefs.setString('birth_date', '2009-01-01'); // 14 years old
+    await prefs.setString('goal', 'lose');
+    await prefs.setDouble('goal_speed', 0.5); // 0.5 kg/week
+    print(
+        'Test data set - Male, 66kg, 6\'1" (185cm), born 2009, lose weight at 0.5kg/week');
+
+    print('====================================================\n');
   }
 }
 

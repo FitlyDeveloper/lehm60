@@ -6,6 +6,12 @@ import 'Features/onboarding_screen.dart';
 import 'firebase_options.dart';
 import 'core/utils/device_size_adapter.dart';
 import 'dart:ui' as ui;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:async';
+import 'dart:io';
+import 'dart:convert';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:fitness_app/Features/codia/codia_page.dart';
 
 // Custom binding to disable overflow errors
 class NoOverflowErrorsFlutterBinding extends WidgetsFlutterBinding {
@@ -77,12 +83,87 @@ void main() async {
     // Continue without Firebase - the app will use mock services
   }
 
+  // Debug option: Uncomment the line below to clear all saved data during testing
+  // await SharedPreferences.getInstance().then((prefs) => prefs.clear());
+
+  // Update hot restart timestamp for detection in Coach screen
+  if (kDebugMode) {
+    _updateHotRestartTimestamp();
+  }
+
+  // Initialize background cleanup for expired chat messages (every 6 hours)
+  _initializeMessageCleanupService();
+
   runApp(
     DevicePreview(
       enabled: !kReleaseMode,
       builder: (context) => const MyApp(),
     ),
   );
+}
+
+// Update timestamp when app is hot restarted
+Future<void> _updateHotRestartTimestamp() async {
+  try {
+    const String hotRestartKey = 'coach_hot_restart_timestamp';
+    final prefs = await SharedPreferences.getInstance();
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await prefs.setInt(hotRestartKey, now);
+    print('Set hot restart timestamp: $now');
+  } catch (e) {
+    print('Error setting hot restart timestamp: $e');
+  }
+}
+
+// Setup a background timer to clean up expired chat messages
+void _initializeMessageCleanupService() {
+  // Run initial cleanup immediately
+  _cleanupExpiredMessages();
+
+  // Setup periodic cleanup every 6 hours
+  Timer.periodic(Duration(hours: 6), (timer) {
+    _cleanupExpiredMessages();
+  });
+}
+
+// Clean up messages older than 12 hours from SharedPreferences
+Future<void> _cleanupExpiredMessages() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    const String chatHistoryKey = 'coach_chat_history';
+    const Duration messageExpiry = Duration(hours: 12);
+
+    // Check if we have any chat history
+    final String? chatHistoryJson = prefs.getString(chatHistoryKey);
+    if (chatHistoryJson == null) return;
+
+    // Parse the JSON string
+    final List<dynamic> allMessages = jsonDecode(chatHistoryJson);
+    final now = DateTime.now();
+
+    // Filter out messages older than 12 hours
+    final validMessages = allMessages.where((msgMap) {
+      try {
+        final timestamp = DateTime.parse(msgMap['timestamp']);
+        return now.difference(timestamp) < messageExpiry;
+      } catch (e) {
+        print('Error parsing message timestamp: $e');
+        // Remove messages with invalid timestamps
+        return false;
+      }
+    }).toList();
+
+    // Only update if we removed some messages
+    if (validMessages.length < allMessages.length) {
+      await prefs.setString(chatHistoryKey, jsonEncode(validMessages));
+      print(
+          'Background cleanup: Removed ${allMessages.length - validMessages.length} expired messages');
+    } else {
+      print('Background cleanup: No expired messages found');
+    }
+  } catch (e) {
+    print('Error in background message cleanup: $e');
+  }
 }
 
 class MyApp extends StatelessWidget {

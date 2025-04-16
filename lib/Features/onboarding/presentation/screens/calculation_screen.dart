@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fitness_app/Features/onboarding/presentation/screens/comfort_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class CalculationScreen extends StatelessWidget {
   final bool isMetric;
@@ -11,12 +12,12 @@ class CalculationScreen extends StatelessWidget {
   final int heightInCm;
   final DateTime birthDate;
   final String gymGoal;
-  late final int calculatedCalories;
-  late final int tdee;
-  late final int dailyDeficit;
-  late final int proteinGrams;
-  late final int fatGrams;
-  late final int carbGrams;
+  int calculatedCalories = 0;
+  int tdee = 0;
+  int dailyDeficit = 0;
+  int proteinGrams = 0;
+  int fatGrams = 0;
+  int carbGrams = 0;
 
   CalculationScreen({
     super.key,
@@ -33,63 +34,303 @@ class CalculationScreen extends StatelessWidget {
     // Print debug values
     print('Initial values:');
     print('Weight: $initialWeight ${isMetric ? 'kg' : 'lbs'}');
-    print('Height: $heightInCm ${isMetric ? 'cm' : 'inches'}');
+
+    // CRITICAL: Use the correct height that is passed in cm
+    // The height should already be in cm from the weight_height_screen.dart
+    int actualHeightInCm = heightInCm;
+    print('Height passed to calculation: $heightInCm cm');
+
     print('Speed: $speedValue ${isMetric ? 'kg' : 'lbs'}/week');
+    print('Birth date: $birthDate');
+
+    // Save all data to SharedPreferences for the main app to access
+    _saveDataToPreferences(actualHeightInCm);
+
+    // Calculate age correctly - matches codia_page.dart logic
+    DateTime today = DateTime.now();
+    int userAge = today.year - birthDate.year;
+    if (today.month < birthDate.month ||
+        (today.month == birthDate.month && today.day < birthDate.day)) {
+      userAge--;
+    }
+
+    // Only check for maximum age (130)
+    if (userAge > 130) {
+      print(
+          'WARNING: User appears to be over 130 years old (age: $userAge). Using maximum age of 130.');
+      userAge = 130;
+    }
+
+    print('Calculated age: $userAge from birth date: $birthDate');
 
     // Convert measurements if using imperial units
     final weightInKg =
         isMetric ? initialWeight : (initialWeight * 0.453592).round();
     final dreamWeightInKg =
         isMetric ? dreamWeight : (dreamWeight * 0.453592).round();
-    final heightConverted = heightInCm;
+
+    // Use converted height
+    final heightConverted = actualHeightInCm;
 
     print('Converted values:');
     print('Weight in kg: $weightInKg');
     print('Height in cm: $heightConverted');
 
-    // Calculate TDEE first
+    // NORMALIZE GOAL SPEED to exact increments (match codia_page.dart)
+    double normalizedSpeed = speedValue;
+    if (speedValue > 0) {
+      if (isMetric) {
+        // Round to exactly 1 decimal place
+        normalizedSpeed = (speedValue * 10).round() / 10.0;
+        print(
+            'Normalized goal speed from $speedValue to ${normalizedSpeed.toStringAsFixed(1)} kg/week');
+      } else {
+        // Round to exactly 1 decimal place for pounds
+        normalizedSpeed = (speedValue * 10).round() / 10.0;
+        print(
+            'Normalized goal speed from $speedValue to ${normalizedSpeed.toStringAsFixed(1)} lb/week');
+      }
+    }
+
+    // Round weightInKg to 1 decimal place (match codia_page.dart)
+    double roundedWeightKg = (weightInKg * 10).round() / 10.0;
+    double roundedDreamWeightKg = (dreamWeightInKg * 10).round() / 10.0;
+
+    // Ensure height is a whole number (match codia_page.dart)
+    int roundedHeight = heightConverted.round();
+
+    // Calculate TDEE first using rounded values
     tdee = calculateTDEE(
       gender: gender,
-      weightKg: weightInKg,
-      heightCm: heightConverted,
-      birthDate: birthDate,
+      weightKg: roundedWeightKg.round(), // Use rounded weight
+      heightCm: roundedHeight, // Use rounded height
+      userAge: userAge, // Use the calculated age
     );
 
     print('TDEE calculated: $tdee');
 
-    // Calculate daily deficit/surplus based on unit system
+    // Calculate daily deficit/surplus based on unit system with normalized speed
     if (isMetric) {
       // Metric: Use 7700 kcal per kg
+      // Round to 1 decimal place for metric values
+      normalizedSpeed = (normalizedSpeed * 10).round() / 10.0;
+      // Do NOT round the deficit calculation to maintain precision for small values
+      double exactMetricDeficit = normalizedSpeed * 7700 / 7;
       dailyDeficit =
-          (speedValue * 7700 / 7).round(); // Weekly kg to daily calories
+          exactMetricDeficit.floor().toInt(); // Weekly kg to daily calories
+      print(
+          'Metric calculation: ${normalizedSpeed.toStringAsFixed(3)} kg/week × 7700 ÷ 7 = ${exactMetricDeficit.toStringAsFixed(3)} → $dailyDeficit calories/day');
     } else {
-      // Imperial: Use 3500 kcal per lb, no need to convert speed since it's already in lbs
+      // Imperial: Use 3500 kcal per lb
+      // For imperial values, keep full precision during calculation
+      // For display only, round to 1 decimal place
+      double displaySpeed = (normalizedSpeed * 10).round() / 10.0;
+      // Do NOT round the deficit calculation to maintain precision for small values
+      double exactDeficit = normalizedSpeed * 3500 / 7;
       dailyDeficit =
-          (speedValue * 3500 / 7).round(); // Weekly lbs to daily calories
+          exactDeficit.floor().toInt(); // Weekly lbs to daily calories
+      print(
+          'Imperial calculation: ${displaySpeed.toStringAsFixed(1)} lb/week × 3500 ÷ 7 = ${exactDeficit.toStringAsFixed(3)} → $dailyDeficit calories/day');
     }
 
     print('Daily deficit calculated: $dailyDeficit');
 
     // Calculate final target calories
-    calculatedCalories = isGaining ? tdee + dailyDeficit : tdee - dailyDeficit;
+    double rawCalculatedCalories = isGaining
+        ? tdee.toDouble() + dailyDeficit.toDouble()
+        : tdee.toDouble() - dailyDeficit.toDouble();
+    print('Raw calculated calories before flooring: $rawCalculatedCalories');
 
-    // Update the macro calculations to consider gym goals
-    final proteinMultiplier = getProteinMultiplier(gymGoal);
-    final proteinCalories = calculatedCalories * proteinMultiplier;
-    final remainingCalories = calculatedCalories - proteinCalories;
-    final fatCalories = remainingCalories * 0.357;
-    final carbCalories = remainingCalories * 0.643;
+    // Ensure the calories match exactly with codia_page.dart by using floor instead of rounding
+    calculatedCalories = rawCalculatedCalories.floorToDouble().toInt();
 
-    // Convert calories to grams
-    proteinGrams = (proteinCalories / 4).round();
-    fatGrams = (fatCalories / 9).round();
-    carbGrams = (carbCalories / 4).round();
+    print('Final target calories (floored): $calculatedCalories');
 
-    print('Macronutrient targets:');
-    print('Protein: ${proteinGrams}g (${proteinCalories.round()} kcal)');
-    print('Fat: ${fatGrams}g (${fatCalories.round()} kcal)');
-    print('Carbs: ${carbGrams}g (${carbCalories.round()} kcal)');
-    print('Total calories: $calculatedCalories');
+    // Define macro distribution based on gym goal - EXACT SAME AS IN codia_page.dart
+    Map<String, Map<String, double>> macroTargets = {
+      "Build Muscle": {
+        "proteinPercent": 0.32,
+        "carbPercent": 0.45,
+        "fatPercent": 0.23,
+      },
+      "Gain Strength": {
+        "proteinPercent": 0.28,
+        "carbPercent": 0.42,
+        "fatPercent": 0.30,
+      },
+      "Boost Endurance": {
+        "proteinPercent": 0.18,
+        "carbPercent": 0.60,
+        "fatPercent": 0.22,
+      },
+      // Default balanced macros when no gym goal is selected
+      "null": {
+        "proteinPercent": 0.25,
+        "carbPercent": 0.50,
+        "fatPercent": 0.25,
+      }
+    };
+
+    // Get the macro distribution for the selected gym goal (default to balanced macros if null or not found)
+    print('Using gym goal for macros: "$gymGoal"');
+    Map<String, double> selectedMacros =
+        macroTargets["null"]!; // Default to balanced macros
+
+    // Only try to use gymGoal if it's a valid key in the map - EXACTLY like in codia_page.dart
+    String goalKey = gymGoal ?? "null";
+    if (macroTargets.containsKey(goalKey)) {
+      selectedMacros = macroTargets[goalKey]!;
+      print('Using macro distribution for: "$goalKey"');
+    } else {
+      print(
+          'No matching macro distribution for: "$goalKey", using balanced default');
+    }
+
+    // Calculate macronutrient targets based on calorie goal and gym goal
+    double proteinPercent = selectedMacros["proteinPercent"]!;
+    double carbPercent = selectedMacros["carbPercent"]!;
+    double fatPercent = selectedMacros["fatPercent"]!;
+
+    // Log the selected macro distribution exactly like codia_page.dart
+    print('Using macro distribution for gym goal: "$gymGoal"');
+    print('- Protein: ${(proteinPercent * 100).toStringAsFixed(1)}%');
+    print('- Carbs: ${(carbPercent * 100).toStringAsFixed(1)}%');
+    print('- Fat: ${(fatPercent * 100).toStringAsFixed(1)}%');
+
+    // Calculate macro targets in grams - EXACTLY as in codia_page.dart
+    proteinGrams = ((calculatedCalories * proteinPercent) / 4).round();
+    fatGrams = ((calculatedCalories * fatPercent) / 9).round();
+    carbGrams = ((calculatedCalories * carbPercent) / 4).round();
+
+    // Log the calculations with the exact same format as codia_page.dart
+    print('Calculated macro targets for $calculatedCalories calories:');
+    print(
+        '- Protein: ${proteinGrams}g (${(calculatedCalories * proteinPercent).round()} kcal)');
+    print(
+        '- Fat: ${fatGrams}g (${(calculatedCalories * fatPercent).round()} kcal)');
+    print(
+        '- Carbs: ${carbGrams}g (${(calculatedCalories * carbPercent).round()} kcal)');
+    print(
+        '- Total: ${((calculatedCalories * proteinPercent) + (calculatedCalories * fatPercent) + (calculatedCalories * carbPercent)).round()} kcal');
+  }
+
+  // Save all important calculation data to SharedPreferences
+  Future<void> _saveDataToPreferences(int heightInCm) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // Print existing height values for debugging
+      print('\nHEIGHT VALUES BEFORE SAVING:');
+      List<String> heightKeys = [
+        'user_height_cm',
+        'heightInCm',
+        'height_cm',
+        'height'
+      ];
+      for (String key in heightKeys) {
+        try {
+          if (prefs.containsKey(key)) {
+            if (prefs.getInt(key) != null) {
+              print('$key (Int): ${prefs.getInt(key)}');
+            } else if (prefs.getDouble(key) != null) {
+              print('$key (Double): ${prefs.getDouble(key)}');
+            } else {
+              print('$key: exists but type is not int or double');
+            }
+          } else {
+            print('$key: does not exist');
+          }
+        } catch (e) {
+          print('$key: Error reading - $e');
+        }
+      }
+
+      // Save gender
+      await prefs.setString('gender', gender);
+
+      // Save weight - both in original and kg format if needed
+      if (isMetric) {
+        await prefs.setDouble('user_weight_kg', initialWeight.toDouble());
+      } else {
+        // Convert to kg for consistent storage
+        double weightInKg = initialWeight * 0.453592;
+        await prefs.setDouble('user_weight_kg', weightInKg);
+        await prefs.setDouble('original_weight_lbs', initialWeight.toDouble());
+      }
+
+      // Save height in cm - CRITICAL: Store as both int and double using the CONVERTED height value
+      print('\nSAVING HEIGHT VALUE:');
+      print('Height value to save: $heightInCm cm (correctly converted)');
+      await prefs.setInt('user_height_cm', heightInCm);
+      await prefs.setDouble('heightInCm', heightInCm.toDouble());
+      await prefs.setDouble('height_cm', heightInCm.toDouble());
+      await prefs.setInt('height', heightInCm);
+
+      // Also save original height in inches if using imperial
+      if (!isMetric) {
+        int originalHeightInches = this.heightInCm;
+        await prefs.setInt('original_height_inches', originalHeightInches);
+        print('Also saving original height: $originalHeightInches inches');
+      }
+
+      // Verify height was properly saved
+      print('\nHEIGHT VALUES AFTER SAVING:');
+      for (String key in heightKeys) {
+        try {
+          if (prefs.containsKey(key)) {
+            if (prefs.getInt(key) != null) {
+              print('$key (Int): ${prefs.getInt(key)}');
+            } else if (prefs.getDouble(key) != null) {
+              print('$key (Double): ${prefs.getDouble(key)}');
+            } else {
+              print('$key: exists but type is not int or double');
+            }
+          } else {
+            print('$key: does not exist');
+          }
+        } catch (e) {
+          print('$key: Error reading - $e');
+        }
+      }
+
+      // Save birth date as string
+      await prefs.setString('birth_date', birthDate.toIso8601String());
+
+      // Save weight goal - Make sure these are consistent
+      // If speedValue is 0, set goal to 'maintain' explicitly
+      if (speedValue == 0) {
+        await prefs.setString('goal', 'maintain');
+        await prefs.setBool('isGaining', false); // Clear any previous value
+        await prefs.setBool('isMaintaining', true); // Add a clear indicator
+      } else {
+        await prefs.setString('goal', isGaining ? 'gain' : 'lose');
+        await prefs.setBool('isGaining', isGaining);
+        await prefs.setBool('isMaintaining', false);
+      }
+
+      // Save goal speed - Be explicit about units and ensure consistency across all screens
+      await prefs.setDouble('goal_speed', speedValue);
+
+      // Also save the kg equivalent for cross-screen compatibility
+      if (!isMetric && speedValue > 0) {
+        double speedInKg = speedValue * 0.453592;
+        await prefs.setDouble('goal_speed_kg_per_week', speedInKg);
+      } else {
+        await prefs.setDouble('goal_speed_kg_per_week', speedValue);
+      }
+
+      // Save gym goal if not null
+      if (gymGoal != null && gymGoal.isNotEmpty) {
+        await prefs.setString('gymGoal', gymGoal);
+      }
+
+      // Save metric/imperial preference
+      await prefs.setBool('is_metric', isMetric);
+
+      print('All calculation data saved to SharedPreferences');
+    } catch (e) {
+      print('Error saving calculation data: $e');
+    }
   }
 
   @override
@@ -188,263 +429,259 @@ class CalculationScreen extends StatelessWidget {
             left: 32,
             right: 32,
             child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24,
-                vertical: 15,
-              ),
-              height: MediaQuery.of(context).size.height * 0.276,
+              height: 220,
+              padding: EdgeInsets.fromLTRB(20, 15, 20, 15),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    offset: const Offset(0, 6),
-                    blurRadius: 20,
-                    spreadRadius: -4,
-                    color: Colors.black.withOpacity(0.08),
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: Offset(0, 5),
                   ),
                 ],
               ),
-              child: OverflowBox(
-                maxHeight: double.infinity,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 15),
-                    // Circle gauge image
-                    Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Image.asset(
-                          'assets/images/circle.png',
-                          height: MediaQuery.of(context).size.height * 0.154,
-                        ),
-                        Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              '$calculatedCalories',
-                              style: const TextStyle(
-                                fontSize: 16.2,
-                                fontWeight: FontWeight.w600,
-                                fontFamily: '.SF Pro Display',
-                              ),
-                            ),
-                            const Text(
-                              'Remaining',
-                              style: TextStyle(
-                                fontSize: 11.1,
-                                color: Colors.black,
-                                fontFamily: '.SF Pro Display',
-                              ),
-                            ),
-                          ],
-                        ),
-                        // Left text position (Deficit)
-                        Positioned(
-                          left: 0,
-                          child: Transform.translate(
-                            offset: const Offset(-70, 0),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  '-$tdee', // Show maintenance/TDEE as deficit since no food eaten yet
-                                  style: const TextStyle(
-                                    fontSize: 15.1,
-                                    fontWeight: FontWeight.w500,
-                                    fontFamily: '.SF Pro Display',
-                                  ),
-                                ),
-                                const Text(
-                                  'Deficit',
-                                  style: TextStyle(
-                                    fontSize: 10.3,
-                                    color: Colors.black,
-                                    fontFamily: '.SF Pro Display',
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        // Right text position (Burned)
-                        Positioned(
-                          right: 0,
-                          child: Transform.translate(
-                            offset: const Offset(68, 0),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: const [
-                                Text(
-                                  '0', // Start at 0 burned calories
-                                  style: TextStyle(
-                                    fontSize: 15.1,
-                                    fontWeight: FontWeight.w500,
-                                    fontFamily: '.SF Pro Display',
-                                  ),
-                                ),
-                                Text(
-                                  'Burned',
-                                  style: TextStyle(
-                                    fontSize: 10.3,
-                                    color: Colors.black,
-                                    fontFamily: '.SF Pro Display',
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 0),
-                    // Macro bars row
-                    Transform.translate(
-                      offset: const Offset(0, -15),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Calorie stats row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      // Deficit
+                      Column(
                         children: [
-                          // Text labels above
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              Transform.translate(
-                                offset: const Offset(-8, 20),
-                                child: Container(
-                                  width: 70,
-                                  child: const Text(
-                                    'Protein',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                      fontFamily: '.SF Pro Display',
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Transform.translate(
-                                offset: const Offset(0, 20),
-                                child: Container(
-                                  width: 70,
-                                  child: const Text(
-                                    'Fat',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                      fontFamily: '.SF Pro Display',
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Transform.translate(
-                                offset: const Offset(8, 20),
-                                child: Container(
-                                  width: 70,
-                                  child: const Text(
-                                    'Carbs',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                      fontFamily: '.SF Pro Display',
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
+                          Text(
+                            '-$tdee',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                              decoration: TextDecoration.none,
+                            ),
                           ),
-                          // Bars row with numbers
-                          SizedBox(
-                            height: 81,
-                            child: OverflowBox(
-                              maxHeight: double.infinity,
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly,
-                                children: [
-                                  Column(
-                                    children: [
-                                      SizedBox(
-                                        width: 70,
-                                        height: 70,
-                                        child: Image.asset(
-                                          'assets/images/protein.png',
-                                          fit: BoxFit.contain,
-                                        ),
-                                      ),
-                                      Transform.translate(
-                                        offset: const Offset(0, -20),
-                                        child: Text(
-                                          '0 / $proteinGrams g',
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w500,
-                                            fontFamily: '.SF Pro Display',
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Column(
-                                    children: [
-                                      SizedBox(
-                                        width: 70,
-                                        height: 70,
-                                        child: Image.asset(
-                                          'assets/images/fat.png',
-                                          fit: BoxFit.contain,
-                                        ),
-                                      ),
-                                      Transform.translate(
-                                        offset: const Offset(0, -20),
-                                        child: Text(
-                                          '0 / $fatGrams g',
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w500,
-                                            fontFamily: '.SF Pro Display',
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Column(
-                                    children: [
-                                      SizedBox(
-                                        width: 70,
-                                        height: 70,
-                                        child: Image.asset(
-                                          'assets/images/carbs.png',
-                                          fit: BoxFit.contain,
-                                        ),
-                                      ),
-                                      Transform.translate(
-                                        offset: const Offset(0, -20),
-                                        child: Text(
-                                          '0 / $carbGrams g',
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w500,
-                                            fontFamily: '.SF Pro Display',
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
+                          Text(
+                            'Deficit',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.normal,
+                              color: Colors.black,
+                              decoration: TextDecoration.none,
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  ],
-                ),
+
+                      // Circular progress
+                      Container(
+                        width: 130,
+                        height: 130,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            // Circle image
+                            Transform.translate(
+                              offset: Offset(0, -3.9),
+                              child: Image.asset(
+                                'assets/images/circle.png',
+                                width: 130,
+                                height: 130,
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+
+                            // Remaining calories text
+                            Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  '$calculatedCalories',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black,
+                                    decoration: TextDecoration.none,
+                                  ),
+                                ),
+                                Text(
+                                  'Remaining',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.normal,
+                                    color: Colors.black,
+                                    decoration: TextDecoration.none,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Burned
+                      Column(
+                        children: [
+                          Text(
+                            '0',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                              decoration: TextDecoration.none,
+                            ),
+                          ),
+                          Text(
+                            'Burned',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.normal,
+                              color: Colors.black,
+                              decoration: TextDecoration.none,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+
+                  SizedBox(height: 5),
+
+                  // Macronutrient progress bars
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      // Protein
+                      Column(
+                        children: [
+                          Text(
+                            'Protein',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.black,
+                              decoration: TextDecoration.none,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Container(
+                            width: 80,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(4),
+                              color: Color(0xFFEEEEEE),
+                            ),
+                            child: FractionallySizedBox(
+                              widthFactor: 0,
+                              alignment: Alignment.centerLeft,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(4),
+                                  color: Color(0xFFD7C1FF),
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            '0 / $proteinGrams g',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                              decoration: TextDecoration.none,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      // Fat
+                      Column(
+                        children: [
+                          Text(
+                            'Fat',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.black,
+                              decoration: TextDecoration.none,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Container(
+                            width: 80,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(4),
+                              color: Color(0xFFEEEEEE),
+                            ),
+                            child: FractionallySizedBox(
+                              widthFactor: 0,
+                              alignment: Alignment.centerLeft,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(4),
+                                  color: Color(0xFFFFD8B1),
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            '0 / $fatGrams g',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                              decoration: TextDecoration.none,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      // Carbs
+                      Column(
+                        children: [
+                          Text(
+                            'Carbs',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.black,
+                              decoration: TextDecoration.none,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Container(
+                            width: 80,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(4),
+                              color: Color(0xFFEEEEEE),
+                            ),
+                            child: FractionallySizedBox(
+                              widthFactor: 0,
+                              alignment: Alignment.centerLeft,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(4),
+                                  color: Color(0xFFB1EFD8),
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            '0 / $carbGrams g',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                              decoration: TextDecoration.none,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),
@@ -461,10 +698,9 @@ class CalculationScreen extends StatelessWidget {
                 borderRadius: BorderRadius.zero,
                 boxShadow: [
                   BoxShadow(
-                    offset: const Offset(0, 6),
-                    blurRadius: 20,
-                    spreadRadius: -4,
-                    color: Colors.black.withOpacity(0.08),
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: Offset(0, -5),
                   ),
                 ],
               ),
@@ -592,46 +828,24 @@ class CalculationScreen extends StatelessWidget {
     required String gender,
     required int weightKg,
     required int heightCm,
-    required DateTime birthDate,
+    required int userAge, // Changed parameter from birthDate to userAge
   }) {
-    // Calculate age
-    final age = DateTime.now().difference(birthDate).inDays ~/ 365;
-
-    // Calculate BMR using Mifflin-St Jeor Equation
+    // BMR using Mifflin-St Jeor Equation - EXACTLY as in codia_page.dart
     double bmr;
-    if (gender == 'Male') {
-      bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * age) + 5;
+    if (gender == 'Female') {
+      bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * userAge) - 161;
+    } else if (gender == 'Male') {
+      bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * userAge) + 5;
     } else {
-      bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * age) - 161;
+      // Default to female formula for "Other"
+      bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * userAge) - 161;
     }
 
     // Apply activity multiplier (1.2 for sedentary - little/no exercise)
     final tdee = bmr * 1.2;
+    print('BMR calculated: $bmr, TDEE with multiplier: $tdee');
 
     return tdee.round();
-  }
-
-  // Helper method to determine protein needs based on both gym and weight goals
-  double getProteinMultiplier(String gymGoal) {
-    // Base multiplier depending on weight goal
-    double baseMultiplier = isGaining ? 0.30 : 0.25;
-
-    // If maintaining or no specific goal, return base multiplier
-    if (gymGoal == 'Maintain') {
-      return baseMultiplier;
-    }
-
-    // Adjust based on gym goal
-    switch (gymGoal) {
-      case 'Build Muscle':
-        return baseMultiplier + 0.10;
-      case 'Gain Strength':
-        return baseMultiplier + 0.08;
-      case 'Boost Endurance':
-        return baseMultiplier + 0.05;
-      default:
-        return baseMultiplier;
-    }
   }
 }
 

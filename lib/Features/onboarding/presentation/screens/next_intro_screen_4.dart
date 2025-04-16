@@ -7,6 +7,7 @@ import 'dart:async';
 import 'package:fitness_app/Features/onboarding/presentation/screens/next_intro_screen_5.dart';
 import 'package:fitness_app/Features/onboarding/presentation/screens/weight_height_copy_screen.dart';
 import 'package:fitness_app/Features/onboarding/presentation/screens/gender_selection_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class CustomScrollBehavior extends ScrollBehavior {
   @override
@@ -160,8 +161,11 @@ class _NextIntroScreen4State extends State<NextIntroScreen4> {
         : ((selectedFeet.value * 12 + selectedInches.value) * 2.54)
             .round(); // Convert total inches to cm
 
+    // Save height to SharedPreferences for future reference
+    _saveHeightToPreferences(heightInCm);
+
     print(
-        "Screen 4: Weight=${selectedWeight.value}, Metric=${isMetric}"); // Debug
+        "Screen 4: Weight=${selectedWeight.value}, Metric=${isMetric}, Height=${heightInCm}cm"); // Debug
 
     Navigator.push(
       context,
@@ -173,6 +177,25 @@ class _NextIntroScreen4State extends State<NextIntroScreen4> {
         ),
       ),
     );
+  }
+
+  // Helper method to save height to SharedPreferences
+  Future<void> _saveHeightToPreferences(int heightInCm) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('user_height_cm', heightInCm);
+      await prefs.setDouble('heightInCm', heightInCm.toDouble());
+
+      // Also save original units for future reference
+      if (!isMetric) {
+        await prefs.setInt('original_height_feet', selectedFeet.value);
+        await prefs.setInt('original_height_inches', selectedInches.value);
+      }
+
+      print('Saved height: ${heightInCm}cm to SharedPreferences');
+    } catch (e) {
+      print('Error saving height to SharedPreferences: $e');
+    }
   }
 
   @override
