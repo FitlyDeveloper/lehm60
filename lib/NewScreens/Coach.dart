@@ -395,6 +395,7 @@ class _CoachScreenState extends State<CoachScreen>
                                                     .withOpacity(0.05),
                                                 blurRadius: 10,
                                                 offset: Offset(0, 5),
+                                                spreadRadius: 0,
                                               ),
                                             ],
                                           ),
@@ -431,35 +432,29 @@ class _CoachScreenState extends State<CoachScreen>
                                     child: GestureDetector(
                                       onTap: () =>
                                           _copyToClipboard(message.text),
-                                      child: Material(
-                                        elevation: 0,
-                                        borderRadius: BorderRadius.circular(20),
-                                        color: message.isFromUser
-                                            ? Colors.black
-                                            : Colors.white,
-                                        child: Ink(
-                                          decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(20),
-                                            color: message.isFromUser
-                                                ? Colors.black
-                                                : Colors.white,
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: Colors.black
-                                                    .withOpacity(0.05),
-                                                blurRadius: 10,
-                                                offset: Offset(0, 5),
-                                              ),
-                                            ],
-                                          ),
-                                          child: Padding(
-                                            padding: EdgeInsets.symmetric(
-                                                horizontal: 16, vertical: 12),
-                                            child: _buildRichText(
-                                              message.text,
-                                              message.isFromUser,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          borderRadius:
+                                              BorderRadius.circular(20),
+                                          color: message.isFromUser
+                                              ? Colors.black
+                                              : Colors.white,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black
+                                                  .withOpacity(0.05),
+                                              blurRadius: 10,
+                                              offset: Offset(0, 5),
+                                              spreadRadius: 0,
                                             ),
+                                          ],
+                                        ),
+                                        child: Padding(
+                                          padding: EdgeInsets.symmetric(
+                                              horizontal: 16, vertical: 12),
+                                          child: _buildRichText(
+                                            message.text,
+                                            message.isFromUser,
                                           ),
                                         ),
                                       ),
