@@ -3,7 +3,8 @@ import 'dart:math' as math;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'Memories.dart';
 import '../../NewScreens/ChooseWorkout.dart';
-import '../../../NewScreens/Coach.dart';
+import '../../NewScreens/Coach.dart';
+import '../../NewScreens/SnapFood.dart';
 import 'flip_card.dart';
 import 'home_card2.dart';
 import '../../NewScreens/FoodCardOpen.dart';
@@ -943,8 +944,13 @@ class _CodiaPageState extends State<CodiaPage> {
                       Expanded(
                         child: GestureDetector(
                           onTap: () {
-                            // Removed navigation to FoodCardOpen
-                            // No functionality for now
+                            // Navigate to SnapFood screen
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const SnapFood(),
+                              ),
+                            );
                           },
                           child: Container(
                             padding: EdgeInsets.symmetric(vertical: 12),
