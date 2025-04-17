@@ -45,25 +45,26 @@ class AIService {
         'role': 'system',
         'content': 'You are a premium fitness and nutrition coach inside the Fitly app. All responses must follow these rules:\n\n'
             '1. Be clear, concise, and easy to follow.\n\n'
-            '2. Use bold section headers (e.g., **Nutrition Tips:**, **Workout Plan:**, **Progress Tips:**).\n\n'
-            '3. Break info into short bullet points — each line should feel tight and useful.\n\n'
-            '4. Avoid paragraphs or long explanations. Aim for a clean, modern premium app tone.\n\n'
-            '5. All numbers must be rounded and practical (e.g., "3-5x/week," "100g chicken = 165 cal").\n\n'
-            '6. Include actionable tips or structure when relevant (e.g., meals, routines, mindset).\n\n'
-            '7. Never over-explain. No motivational fluff. Just smart, efficient advice.\n\n'
-            '8. Keep formatting consistent across all answers (bullets, bold labels, calorie info etc).\n\n'
-            '9. CRITICALLY IMPORTANT: Insert EXACTLY ONE empty line after EVERY heading.\n\n'
-            '10. DO NOT use markdown syntax with # or ### symbols anywhere.\n\n'
-            '11. Example structure:\n\n'
+            '2. Use bold section headers with double asterisks (e.g., **Nutrition Tips:**, **Workout Plan:**, **Progress Tips:**).\n\n'
+            '3. Use single asterisks for medium emphasis text (e.g., *Important:*, *Note:*, *Remember:*).\n\n'
+            '4. Break info into short bullet points — each line should feel tight and useful.\n\n'
+            '5. Avoid paragraphs or long explanations. Aim for a clean, modern premium app tone.\n\n'
+            '6. All numbers must be rounded and practical (e.g., "3-5x/week," "100g chicken = 165 cal").\n\n'
+            '7. Include actionable tips or structure when relevant (e.g., meals, routines, mindset).\n\n'
+            '8. Never over-explain. No motivational fluff. Just smart, efficient advice.\n\n'
+            '9. Keep formatting consistent across all answers (bullets, bold labels, calorie info etc).\n\n'
+            '10. CRITICALLY IMPORTANT: Insert EXACTLY ONE empty line after EVERY heading.\n\n'
+            '11. DO NOT use markdown syntax with # or ### symbols anywhere.\n\n'
+            '12. Example structure:\n\n'
             '**Goal Plan:**\n\n'
             '- Calories: Target 300–500 kcal deficit/day\n'
-            '- Protein: Prioritize lean sources (e.g., chicken, eggs)\n'
+            '- Protein: Prioritize *lean sources* (e.g., chicken, eggs)\n'
             '- Veggies: Half plate; spinach/broccoli are low cal\n\n'
             '**Training:**\n\n'
             '- Cardio: 3–5x/week (burns 150–300 kcal/session)\n'
             '- Strength: 2–3x/week (preserve muscle)\n\n'
             '**Tips:**\n\n'
-            '- Track food daily\n'
+            '- Track food *daily*\n'
             '- Sleep 7–9 hrs/night\n'
             '- Weigh once/week only\n\n'
             'Always respond in this format unless asked to be casual or conversational.'
@@ -104,16 +105,18 @@ class AIService {
 
               // Instead of adding chunks all at once, add them with a tiny delay
               // to simulate the streaming effect
-              _streamChunksWithDelay(data['chunks'] as List);
+              _streamChunksWithDelay(
+                  data['chunks'] as List, _streamController!);
             }
             // If there's just fullContent, simulate typing it out
             else if (data.containsKey('fullContent') &&
                 data['fullContent'] is String) {
-              _simulateStreaming(data['fullContent'] as String);
+              _simulateStreaming(
+                  data['fullContent'] as String, _streamController!);
             }
             // If there's just content, simulate typing it out
             else if (data.containsKey('content') && data['content'] is String) {
-              _simulateStreaming(data['content'] as String);
+              _simulateStreaming(data['content'] as String, _streamController!);
             } else {
               throw Exception('No content found in response');
             }
@@ -126,33 +129,34 @@ class AIService {
           // Mark that we had an initialization error so we don't try again
           _hasInitializationError = true;
           // Fallback to non-streaming approach
-          _fallbackToNonStreaming(safeMessages);
+          _fallbackToNonStreaming(safeMessages, _streamController!);
         });
       } catch (callError) {
         print('AI Service: Initial function call error: $callError');
         // Mark that we had an initialization error so we don't try again
         _hasInitializationError = true;
         // Fallback to non-streaming approach
-        _fallbackToNonStreaming(safeMessages);
+        _fallbackToNonStreaming(safeMessages, _streamController!);
       }
     } catch (e) {
       print('AI Service: Error: $e');
       if (_streamController != null && !_streamController!.isClosed) {
         // Use the fallback content for demo purposes
-        _simulateStreamingWithFallbackContent();
+        _simulateStreamingWithFallbackContent(_streamController!);
       }
     }
   }
 
   /// Stream chunks from a list with a minimal delay between each
-  void _streamChunksWithDelay(List chunks) async {
+  void _streamChunksWithDelay(
+      List chunks, StreamController<String> controller) async {
     if (_streamController == null || _streamController!.isClosed) return;
 
     for (final chunk in chunks) {
       if (_streamController!.isClosed) return;
 
       // Add chunk to the stream
-      _streamController!.add(chunk.toString());
+      controller.add(chunk.toString());
 
       // Add a tiny delay to make it feel like real-time typing
       // This makes it feel more natural than dumping all at once
@@ -161,13 +165,13 @@ class AIService {
 
     // Close the stream when done
     if (!_streamController!.isClosed) {
-      _streamController!.close();
+      controller.close();
     }
   }
 
   /// Fallback to non-streaming approach on error
-  Future<void> _fallbackToNonStreaming(
-      List<Map<String, String>> safeMessages) async {
+  Future<void> _fallbackToNonStreaming(List<Map<String, String>> safeMessages,
+      StreamController<String> controller) async {
     try {
       print("Falling back to non-streaming approach");
 
@@ -185,7 +189,7 @@ class AIService {
           (data['content'] is String || data['fullContent'] is String)) {
         final content =
             data['content'] as String? ?? data['fullContent'] as String;
-        _simulateStreaming(content);
+        _simulateStreaming(content, controller);
       } else {
         throw Exception('Non-streaming fallback also failed');
       }
@@ -193,13 +197,14 @@ class AIService {
       print('AI Service: Fallback also failed: $fallbackError');
       if (_streamController != null && !_streamController!.isClosed) {
         // Use the fallback content for demo purposes
-        _simulateStreamingWithFallbackContent();
+        _simulateStreamingWithFallbackContent(controller);
       }
     }
   }
 
   /// For testing when Firebase Functions isn't available
-  void _simulateStreamingWithFallbackContent() {
+  void _simulateStreamingWithFallbackContent(
+      StreamController<String> controller) {
     final fallbackResponse = '''**Workout Plan:**
 
 - Strength: 3-4x/week focusing on compound movements
@@ -220,11 +225,11 @@ class AIService {
 - Adjust calorie intake based on weekly weight trends
 - Sleep 7-8 hours consistently for recovery''';
 
-    _simulateStreaming(fallbackResponse);
+    _simulateStreaming(fallbackResponse, controller);
   }
 
   /// Simulate streaming by sending chunks of the content
-  void _simulateStreaming(String content) {
+  void _simulateStreaming(String content, StreamController<String> controller) {
     if (_streamController == null || _streamController!.isClosed) return;
 
     // Define chunk size for more natural typing feel
@@ -233,15 +238,16 @@ class AIService {
     // Add a small delay for a more natural feel
     Future.delayed(Duration(milliseconds: 300), () {
       // Start streaming the words
-      _streamWords(words, 0);
+      _streamWords(words, 0, controller);
     });
   }
 
   /// Stream words with realistic typing speed
-  void _streamWords(List<String> words, int index) async {
+  void _streamWords(List<String> words, int index,
+      StreamController<String> controller) async {
     if (_streamController == null || _streamController!.isClosed) return;
     if (index >= words.length) {
-      _streamController!.close();
+      controller.close();
       return;
     }
 
@@ -252,14 +258,14 @@ class AIService {
         (index + chunkSize < words.length ? ' ' : '');
 
     // Add the chunk to the stream
-    _streamController!.add(chunk);
+    controller.add(chunk);
 
     // Determine delay (simulate typing speed)
     final delay = 50 + math.Random().nextInt(50); // 50-100ms
 
     // Process next chunk after delay
     Future.delayed(Duration(milliseconds: delay), () {
-      _streamWords(words, index + chunkSize);
+      _streamWords(words, index + chunkSize, controller);
     });
   }
 
@@ -282,25 +288,26 @@ class AIService {
         'role': 'system',
         'content': 'You are a premium fitness and nutrition coach inside the Fitly app. All responses must follow these rules:\n\n'
             '1. Be clear, concise, and easy to follow.\n\n'
-            '2. Use bold section headers (e.g., **Nutrition Tips:**, **Workout Plan:**, **Progress Tips:**).\n\n'
-            '3. Break info into short bullet points — each line should feel tight and useful.\n\n'
-            '4. Avoid paragraphs or long explanations. Aim for a clean, modern premium app tone.\n\n'
-            '5. All numbers must be rounded and practical (e.g., "3-5x/week," "100g chicken = 165 cal").\n\n'
-            '6. Include actionable tips or structure when relevant (e.g., meals, routines, mindset).\n\n'
-            '7. Never over-explain. No motivational fluff. Just smart, efficient advice.\n\n'
-            '8. Keep formatting consistent across all answers (bullets, bold labels, calorie info etc).\n\n'
-            '9. CRITICALLY IMPORTANT: Insert EXACTLY ONE empty line after EVERY heading.\n\n'
-            '10. DO NOT use markdown syntax with # or ### symbols anywhere.\n\n'
-            '11. Example structure:\n\n'
+            '2. Use bold section headers with double asterisks (e.g., **Nutrition Tips:**, **Workout Plan:**, **Progress Tips:**).\n\n'
+            '3. Use single asterisks for medium emphasis text (e.g., *Important:*, *Note:*, *Remember:*).\n\n'
+            '4. Break info into short bullet points — each line should feel tight and useful.\n\n'
+            '5. Avoid paragraphs or long explanations. Aim for a clean, modern premium app tone.\n\n'
+            '6. All numbers must be rounded and practical (e.g., "3-5x/week," "100g chicken = 165 cal").\n\n'
+            '7. Include actionable tips or structure when relevant (e.g., meals, routines, mindset).\n\n'
+            '8. Never over-explain. No motivational fluff. Just smart, efficient advice.\n\n'
+            '9. Keep formatting consistent across all answers (bullets, bold labels, calorie info etc).\n\n'
+            '10. CRITICALLY IMPORTANT: Insert EXACTLY ONE empty line after EVERY heading.\n\n'
+            '11. DO NOT use markdown syntax with # or ### symbols anywhere.\n\n'
+            '12. Example structure:\n\n'
             '**Goal Plan:**\n\n'
             '- Calories: Target 300–500 kcal deficit/day\n'
-            '- Protein: Prioritize lean sources (e.g., chicken, eggs)\n'
+            '- Protein: Prioritize *lean sources* (e.g., chicken, eggs)\n'
             '- Veggies: Half plate; spinach/broccoli are low cal\n\n'
             '**Training:**\n\n'
             '- Cardio: 3–5x/week (burns 150–300 kcal/session)\n'
             '- Strength: 2–3x/week (preserve muscle)\n\n'
             '**Tips:**\n\n'
-            '- Track food daily\n'
+            '- Track food *daily*\n'
             '- Sleep 7–9 hrs/night\n'
             '- Weigh once/week only\n\n'
             'Always respond in this format unless asked to be casual or conversational.'
@@ -537,6 +544,89 @@ class AIService {
       _streamController!.close();
     }
   }
+
+  // Remove any print statements that expose the DeepSeek API key
+  Future<String> _callDeepSeekFunction(
+      List<Map<String, dynamic>> messages) async {
+    try {
+      // Log attempt without exposing sensitive information
+      print("Attempting to call DeepSeek AI function");
+
+      final callable =
+          FirebaseFunctions.instance.httpsCallable('getAIResponse');
+      final result = await callable.call({
+        'messages': messages,
+      });
+
+      if (result.data != null && result.data['content'] != null) {
+        return result.data['content'];
+      } else {
+        print("DeepSeek function returned empty response");
+        return _getFallbackResponse();
+      }
+    } catch (e) {
+      print(
+          "Error calling DeepSeek function: ${e.toString().replaceAll(RegExp(r'apiKey=[\w\-\.]+'), 'apiKey=[REDACTED]')}");
+      return _getFallbackResponse();
+    }
+  }
+
+  // Update any other DeepSeek-related functions to avoid printing sensitive info
+  Future<Stream<String>> _legacyStreamAIResponse(
+      String userMessage, List<Map<String, dynamic>> chatHistory) async {
+    final controller = StreamController<String>();
+
+    try {
+      print("Preparing to stream AI response");
+      // Create a list of messages for the API call
+      final List<Map<String, String>> messages = [];
+
+      // Add system message
+      messages.add({
+        'role': 'system',
+        'content': 'You are a premium fitness and nutrition coach.'
+      });
+
+      // Add chat history
+      for (final msg in chatHistory) {
+        messages.add({
+          'role': msg['role'] as String,
+          'content': msg['content'] as String,
+        });
+      }
+
+      // Add current user message
+      messages.add({
+        'role': 'user',
+        'content': userMessage,
+      });
+
+      // Call Firebase function
+      final callable = _functions.httpsCallable('streamAIResponse');
+      callable.call({'messages': messages}).then((result) {
+        final data = result.data as Map<String, dynamic>;
+
+        if (data['success'] == true && data['chunks'] is List) {
+          // Stream the chunks with a delay
+          _streamChunksWithDelay(data['chunks'] as List, controller);
+        } else {
+          throw Exception('Invalid response format');
+        }
+      }).catchError((error) {
+        print(
+            "Error in streamAIResponse: ${error.toString().replaceAll(RegExp(r'apiKey=[\w\-\.]+'), 'apiKey=[REDACTED]')}");
+        controller.addError(error);
+        controller.close();
+      });
+    } catch (e) {
+      print(
+          "Error in streamAIResponse: ${e.toString().replaceAll(RegExp(r'apiKey=[\w\-\.]+'), 'apiKey=[REDACTED]')}");
+      controller.addError(e);
+      controller.close();
+    }
+
+    return controller.stream;
+  }
 }
 
 /* 
@@ -550,16 +640,58 @@ class AIService {
   Future<String> getAIResponse(List<Map<String, dynamic>> messages) async {
     try {
       // Call the Firebase Function
-      final result = await _functions.httpsCallable('callDeepSeekAI').call({
+      final result = await _functions.httpsCallable('getAIResponse').call({
         'messages': messages,
       });
       
       // Extract response from DeepSeek
-      final response = result.data;
-      return response['choices'][0]['message']['content'];
+      final data = result.data as Map<String, dynamic>;
+      return data['content'];
     } catch (e) {
       print('Error calling AI service: $e');
       return "Sorry, I couldn't process your request at the moment.";
+    }
+  }
+  
+  Stream<String> streamAIResponse(List<Map<String, dynamic>> messages) {
+    final controller = StreamController<String>();
+    
+    try {
+      // Call the Firebase Function
+      _functions.httpsCallable('streamAIResponse').call({
+        'messages': messages,
+      }).then((result) {
+        final data = result.data as Map<String, dynamic>;
+        
+        if (data['success'] == true && data['chunks'] is List) {
+          // Stream the chunks with a delay
+          _streamChunksWithDelay(data['chunks'] as List, controller);
+        } else {
+          throw Exception('Invalid response format');
+        }
+      }).catchError((error) {
+        print('Error calling streaming AI service: $error');
+        controller.addError(error);
+        controller.close();
+      });
+    } catch (e) {
+      print('Error setting up streaming AI service: $e');
+      controller.addError(e);
+      controller.close();
+    }
+    
+    return controller.stream;
+  }
+  
+  void _streamChunksWithDelay(List chunks, StreamController<String> controller) async {
+    for (final chunk in chunks) {
+      if (controller.isClosed) return;
+      controller.add(chunk.toString());
+      await Future.delayed(Duration(milliseconds: 10));
+    }
+    
+    if (!controller.isClosed) {
+      controller.close();
     }
   }
 }

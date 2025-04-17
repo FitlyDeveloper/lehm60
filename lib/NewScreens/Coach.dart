@@ -441,11 +441,11 @@ class _CoachScreenState extends State<CoachScreen>
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 29)
                           .copyWith(top: 16, bottom: 8.5),
-              child: Stack(
-                children: [
+                      child: Stack(
+                        children: [
                           // Back button
-                  Positioned(
-                    left: 0,
+                          Positioned(
+                            left: 0,
                             top: 22,
                             child: IconButton(
                               icon: const Icon(Icons.arrow_back,
@@ -473,10 +473,10 @@ class _CoachScreenState extends State<CoachScreen>
                               SizedBox(width: 8),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
                                   Text(
-                            'Coach',
+                                    'Coach',
                                     style: TextStyle(
                                       fontSize: 24,
                                       fontWeight: FontWeight.bold,
@@ -485,8 +485,8 @@ class _CoachScreenState extends State<CoachScreen>
                                       decoration: TextDecoration.none,
                                     ),
                                     maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                   SizedBox(height: 1.6),
                                   Text(
                                     'Active now',
@@ -498,8 +498,8 @@ class _CoachScreenState extends State<CoachScreen>
                                       fontWeight: FontWeight.normal,
                                     ),
                                     maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ],
                               ),
                             ],
@@ -599,8 +599,8 @@ class _CoachScreenState extends State<CoachScreen>
                                     child: GestureDetector(
                                       onTap: () =>
                                           _copyToClipboard(message.text),
-                    child: Container(
-                      decoration: BoxDecoration(
+                                      child: Container(
+                                        decoration: BoxDecoration(
                                           borderRadius:
                                               BorderRadius.circular(20),
                                           color: message.isFromUser
@@ -648,7 +648,7 @@ class _CoachScreenState extends State<CoachScreen>
                 // Input area below chat (fixed, non-scrolling)
                 Column(
                   mainAxisSize: MainAxisSize.min,
-                          children: [
+                  children: [
                     // Example text if needed
                     if (_showExample)
                       Padding(
@@ -733,107 +733,76 @@ class _CoachScreenState extends State<CoachScreen>
                       ),
                     ),
                   ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
   Widget _buildRichText(String text, bool isFromUser) {
     final List<TextSpan> spans = [];
+    int lastIndex = 0;
 
-    // First handle bold text formatted with ** around it
-    final RegExp boldPattern = RegExp(r'\*\*(.*?)\*\*');
-    final matches = boldPattern.allMatches(text);
+    // Process all formatting patterns in one pass
+    final RegExp combinedPattern = RegExp(r'\*\*(.*?)\*\*|\*(.*?)\*');
+    final matches = combinedPattern.allMatches(text);
 
-    // If no bold formatting is found, check for single * formatting
-    if (matches.isEmpty) {
-      final RegExp singleAsteriskPattern = RegExp(r'\*(.*?)\*');
-      final singleMatches = singleAsteriskPattern.allMatches(text);
+    for (final match in matches) {
+      final start = match.start;
+      final end = match.end;
+      final matchText = match.group(0)!;
 
-      int lastIndex = 0;
-      for (final match in singleMatches) {
-        final start = match.start;
-        final end = match.end;
-
-        // Add text before the bold part
-        if (start > lastIndex) {
-          spans.add(TextSpan(
-            text: text.substring(lastIndex, start),
-            style: TextStyle(
-              fontSize: 16,
-              color: isFromUser ? Colors.white : Colors.black,
-            ),
-          ));
-        }
-
-        // Add the bold text (without the * symbols)
+      // Add text before the formatted part
+      if (start > lastIndex) {
         spans.add(TextSpan(
-          text: match.group(1),
+          text: text.substring(lastIndex, start),
+          style: TextStyle(
+            fontSize: 16,
+            color: isFromUser ? Colors.white : Colors.black,
+          ),
+        ));
+      }
+
+      // Check if it's a bold pattern (double asterisks) or medium pattern (single asterisk)
+      if (matchText.startsWith('**') && matchText.endsWith('**')) {
+        // Bold text (double asterisks)
+        spans.add(TextSpan(
+          text: match.group(1), // Extract the content between **
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
             color: isFromUser ? Colors.white : Colors.black,
           ),
         ));
-
-        lastIndex = end;
-      }
-
-      // Add remaining text after the last match
-      if (lastIndex < text.length) {
+      } else if (matchText.startsWith('*') && matchText.endsWith('*')) {
+        // Medium text (single asterisk)
+        // We need to get the content between the single asterisks
+        final content = matchText.substring(1, matchText.length - 1);
         spans.add(TextSpan(
-          text: text.substring(lastIndex),
+          text: content,
           style: TextStyle(
             fontSize: 16,
+            fontWeight: FontWeight.w500,
             color: isFromUser ? Colors.white : Colors.black,
           ),
         ));
       }
-    } else {
-      // Process double-asterisk pattern as before
-      int lastIndex = 0;
-      for (final match in matches) {
-        final start = match.start;
-        final end = match.end;
 
-        // Add text before the bold part
-        if (start > lastIndex) {
-          spans.add(TextSpan(
-            text: text.substring(lastIndex, start),
-            style: TextStyle(
-              fontSize: 16,
-              color: isFromUser ? Colors.white : Colors.black,
-            ),
-          ));
-        }
+      lastIndex = end;
+    }
 
-        // Add the bold text (without the ** symbols)
-        spans.add(TextSpan(
-          text: match.group(1),
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: isFromUser ? Colors.white : Colors.black,
-          ),
-        ));
-
-        lastIndex = end;
-      }
-
-      // Add remaining text after the last match
-      if (lastIndex < text.length) {
-        spans.add(TextSpan(
-          text: text.substring(lastIndex),
-          style: TextStyle(
-            fontSize: 16,
-            color: isFromUser ? Colors.white : Colors.black,
-          ),
-        ));
-      }
+    // Add remaining text after the last match
+    if (lastIndex < text.length) {
+      spans.add(TextSpan(
+        text: text.substring(lastIndex),
+        style: TextStyle(
+          fontSize: 16,
+          color: isFromUser ? Colors.white : Colors.black,
+        ),
+      ));
     }
 
     // If no formatting was found at all, just return the plain text
