@@ -96,7 +96,6 @@ class _LogDescribeExerciseState extends State<LogDescribeExercise> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          SizedBox(height: 20),
                           // Exercise Section
                           Row(
                             children: [
@@ -229,10 +228,11 @@ class _LogDescribeExerciseState extends State<LogDescribeExercise> {
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(20),
                                     side: BorderSide(
-                                      color: selectedDistance == distance ? Colors.black : Colors.grey[300]!,
+                                      color: selectedDistance == distance ? Colors.transparent : Colors.grey[300]!,
                                     ),
                                   ),
                                   padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  showCheckmark: false,
                                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                   visualDensity: VisualDensity.compact,
                                 );
@@ -329,10 +329,11 @@ class _LogDescribeExerciseState extends State<LogDescribeExercise> {
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(20),
                                     side: BorderSide(
-                                      color: selectedTime == time ? Colors.black : Colors.grey[300]!,
+                                      color: selectedTime == time ? Colors.transparent : Colors.grey[300]!,
                                     ),
                                   ),
                                   padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  showCheckmark: false,
                                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                   visualDensity: VisualDensity.compact,
                                 );

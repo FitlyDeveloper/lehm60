@@ -53,7 +53,7 @@ class _LogRunningState extends State<LogRunning> {
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16)
+                            padding: const EdgeInsets.symmetric(horizontal: 29)
                                 .copyWith(top: 16, bottom: 8.5),
                             child: Row(
                               children: [
@@ -101,7 +101,7 @@ class _LogRunningState extends State<LogRunning> {
                   ),
                   Expanded(
                     child: SingleChildScrollView(
-                      padding: EdgeInsets.all(20),
+                      padding: EdgeInsets.symmetric(horizontal: 29),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -127,10 +127,11 @@ class _LogRunningState extends State<LogRunning> {
                           ),
                           SizedBox(height: 15),
                           // Distance Chips
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 8),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          Center(
+                            child: Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              alignment: WrapAlignment.center,
                               children: distances.map((distance) {
                                 return ChoiceChip(
                                   label: Text(
@@ -155,10 +156,11 @@ class _LogRunningState extends State<LogRunning> {
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(20),
                                     side: BorderSide(
-                                      color: selectedDistance == distance ? Colors.black : Colors.grey[300]!,
+                                      color: selectedDistance == distance ? Colors.transparent : Colors.grey[300]!,
                                     ),
                                   ),
                                   padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  showCheckmark: false,
                                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                   visualDensity: VisualDensity.compact,
                                 );
@@ -207,23 +209,26 @@ class _LogRunningState extends State<LogRunning> {
                           SizedBox(height: 20),
                           
                           // Time Section
-                          Row(
-                            children: [
-                              Image.asset(
-                                'assets/images/timeicon.png',
-                                width: 24,
-                                height: 24,
-                              ),
-                              SizedBox(width: 8),
-                              Text(
-                                'Time',
-                                style: TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                  fontFamily: 'SF Pro Display',
+                          Padding(
+                            padding: EdgeInsets.only(top: 29),
+                            child: Row(
+                              children: [
+                                Image.asset(
+                                  'assets/images/timeicon.png',
+                                  width: 24,
+                                  height: 24,
                                 ),
-                              ),
-                            ],
+                                SizedBox(width: 8),
+                                Text(
+                                  'Time',
+                                  style: TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                    fontFamily: 'SF Pro Display',
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                           SizedBox(height: 20),
                           // Time Chips
@@ -255,10 +260,11 @@ class _LogRunningState extends State<LogRunning> {
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(20),
                                     side: BorderSide(
-                                      color: selectedTime == time ? Colors.black : Colors.grey[300]!,
+                                      color: selectedTime == time ? Colors.transparent : Colors.grey[300]!,
                                     ),
                                   ),
                                   padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  showCheckmark: false,
                                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                   visualDensity: VisualDensity.compact,
                                 );
@@ -267,40 +273,43 @@ class _LogRunningState extends State<LogRunning> {
                           ),
                           SizedBox(height: 15),
                           // Time TextField
-                          Container(
-                            height: 56,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(15),
-                              border: Border.all(color: Colors.grey[300]!),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
-                                  blurRadius: 10,
-                                  offset: Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: TextField(
-                              controller: _timeController,
-                              keyboardType: TextInputType.number,
-                              textAlign: TextAlign.left,
-                              textAlignVertical: TextAlignVertical.center,
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w400,
-                                color: Colors.black,
+                          Padding(
+                            padding: EdgeInsets.only(top: 15),
+                            child: Container(
+                              height: 56,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(15),
+                                border: Border.all(color: Colors.grey[300]!),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 10,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ],
                               ),
-                              decoration: InputDecoration(
-                                hintText: 'Minutes',
-                                hintStyle: TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 16,
+                              child: TextField(
+                                controller: _timeController,
+                                keyboardType: TextInputType.number,
+                                textAlign: TextAlign.left,
+                                textAlignVertical: TextAlignVertical.center,
+                                style: TextStyle(
+                                  fontSize: 14,
                                   fontWeight: FontWeight.w400,
+                                  color: Colors.black,
                                 ),
-                                border: InputBorder.none,
-                                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                isCollapsed: true,
+                                decoration: InputDecoration(
+                                  hintText: 'Minutes',
+                                  hintStyle: TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                  border: InputBorder.none,
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                  isCollapsed: true,
+                                ),
                               ),
                             ),
                           ),
