@@ -144,8 +144,33 @@ class _SnapFoodState extends State<SnapFood> {
   Future<void> _takePicture() async {
     try {
       print("Opening camera...");
-      final XFile? pickedFile =
-          await _picker.pickImage(source: ImageSource.camera);
+
+      // Check if camera is available (important for web platforms)
+      bool isCameraAvailable = true;
+      if (kIsWeb) {
+        // For web, we'll just assume camera might not be available
+        isCameraAvailable = false;
+      } else if (Platform.isAndroid || Platform.isIOS) {
+        // For mobile platforms, camera should be available
+        isCameraAvailable = true;
+      } else {
+        // For desktop platforms, camera might not be available
+        isCameraAvailable = false;
+      }
+
+      if (!isCameraAvailable) {
+        print("Camera not available on this platform");
+        if (mounted) {
+          _showCameraUnavailableDialog();
+        }
+        return;
+      }
+
+      // Try to access camera directly, with no gallery fallback
+      final XFile? pickedFile = await _picker.pickImage(
+        source: ImageSource.camera,
+        preferredCameraDevice: CameraDevice.rear,
+      );
 
       if (pickedFile != null) {
         print("Photo taken: ${pickedFile.path}");
@@ -173,12 +198,54 @@ class _SnapFoodState extends State<SnapFood> {
     } catch (e) {
       print("Error taking picture: $e");
 
-      if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) {
-        // For desktop or web with no camera
-        print("Platform doesn't support camera");
-        // No fallback to gallery - only Add Photo button should open gallery
+      if (mounted) {
+        _showCameraErrorDialog();
       }
     }
+  }
+
+  void _showCameraUnavailableDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Camera Unavailable"),
+          content: const Text(
+            "The camera is not available on this device. Please use the 'Add Photo' button to select an existing image.",
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text("OK"),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showCameraErrorDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Camera Error"),
+          content: const Text(
+            "There was an error accessing the camera. Please check your camera permissions and try again.",
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text("OK"),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _showUnsupportedPlatformDialog() {
@@ -235,6 +302,46 @@ class _SnapFoodState extends State<SnapFood> {
 
   // Helper method to check if we have an image
   bool get _hasImage => _imageFile != null || _webImagePath != null;
+
+  // Function for camera only with no gallery fallback
+  Future<void> _cameraOnly() async {
+    try {
+      print("Opening camera (shutter button)...");
+
+      // Don't even attempt on web or desktop
+      if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) {
+        print("Camera not available on this platform");
+        if (mounted) {
+          _showCameraUnavailableDialog();
+        }
+        return;
+      }
+
+      // Try to access camera directly, with no fallback
+      final XFile? pickedFile = await _picker.pickImage(
+        source: ImageSource.camera,
+        preferredCameraDevice: CameraDevice.rear,
+      );
+
+      if (pickedFile != null) {
+        print("Photo taken with shutter button: ${pickedFile.path}");
+
+        if (mounted) {
+          setState(() {
+            _imageFile = File(pickedFile.path);
+            _webImagePath = null;
+          });
+        }
+      } else {
+        print("No photo taken with shutter button");
+      }
+    } catch (e) {
+      print("Error accessing camera from shutter button: $e");
+      if (mounted) {
+        _showCameraErrorDialog();
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -483,7 +590,7 @@ class _SnapFoodState extends State<SnapFood> {
               ),
             ),
 
-            // Shutter button and flash button
+            // Shutter button - camera only, no gallery fallback
             Positioned(
               bottom: 15,
               left: 29, // Adjusted to match 29px padding
@@ -512,7 +619,8 @@ class _SnapFoodState extends State<SnapFood> {
 
                   // Shutter button - camera only, no gallery fallback
                   GestureDetector(
-                    onTap: _takePicture,
+                    onTap:
+                        _cameraOnly, // New dedicated camera function with no gallery fallback
                     child: Container(
                       width: 70,
                       height: 70,
