@@ -170,10 +170,10 @@ class _LogRunningState extends State<LogRunning> {
                           SizedBox(height: 15),
                           // Distance TextField
                           Container(
-                            height: 56,
+                            height: 50,
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              borderRadius: BorderRadius.circular(15),
+                              borderRadius: BorderRadius.circular(25),
                               border: Border.all(color: Colors.grey[300]!),
                               boxShadow: [
                                 BoxShadow(
@@ -183,26 +183,34 @@ class _LogRunningState extends State<LogRunning> {
                                 ),
                               ],
                             ),
-                            child: TextField(
-                              controller: _distanceController,
-                              keyboardType: TextInputType.number,
-                              textAlign: TextAlign.left,
-                              textAlignVertical: TextAlignVertical.center,
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w400,
-                                color: Colors.black,
-                              ),
-                              decoration: InputDecoration(
-                                hintText: 'Kilometers',
-                                hintStyle: TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 16,
+                            child: Center(
+                              child: TextField(
+                                controller: _distanceController,
+                                keyboardType: TextInputType.number,
+                                cursorColor: Colors.black,
+                                cursorWidth: 1.2,
+                                textAlign: TextAlign.left,
+                                textAlignVertical: TextAlignVertical.center,
+                                style: TextStyle(
+                                  fontSize: 13.6,
                                   fontWeight: FontWeight.w400,
+                                  color: Colors.black,
+                                  fontFamily: '.SF Pro Display',
                                 ),
-                                border: InputBorder.none,
-                                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                isCollapsed: true,
+                                decoration: InputDecoration(
+                                  hintText: 'Kilometers',
+                                  hintStyle: TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 13.6,
+                                    fontWeight: FontWeight.w400,
+                                    fontFamily: '.SF Pro Display',
+                                  ),
+                                  border: InputBorder.none,
+                                  enabledBorder: InputBorder.none,
+                                  focusedBorder: InputBorder.none,
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 15),
+                                  isCollapsed: true,
+                                ),
                               ),
                             ),
                           ),
@@ -273,41 +281,46 @@ class _LogRunningState extends State<LogRunning> {
                           ),
                           SizedBox(height: 15),
                           // Time TextField
-                          Padding(
-                            padding: EdgeInsets.only(top: 15),
-                            child: Container(
-                              height: 56,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(15),
-                                border: Border.all(color: Colors.grey[300]!),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
-                                    blurRadius: 10,
-                                    offset: Offset(0, 2),
-                                  ),
-                                ],
-                              ),
+                          Container(
+                            height: 50,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(25),
+                              border: Border.all(color: Colors.grey[300]!),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.05),
+                                  blurRadius: 10,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Center(
                               child: TextField(
                                 controller: _timeController,
                                 keyboardType: TextInputType.number,
+                                cursorColor: Colors.black,
+                                cursorWidth: 1.2,
                                 textAlign: TextAlign.left,
                                 textAlignVertical: TextAlignVertical.center,
                                 style: TextStyle(
-                                  fontSize: 14,
+                                  fontSize: 13.6,
                                   fontWeight: FontWeight.w400,
                                   color: Colors.black,
+                                  fontFamily: '.SF Pro Display',
                                 ),
                                 decoration: InputDecoration(
                                   hintText: 'Minutes',
                                   hintStyle: TextStyle(
                                     color: Colors.grey,
-                                    fontSize: 16,
+                                    fontSize: 13.6,
                                     fontWeight: FontWeight.w400,
+                                    fontFamily: '.SF Pro Display',
                                   ),
                                   border: InputBorder.none,
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                  enabledBorder: InputBorder.none,
+                                  focusedBorder: InputBorder.none,
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 15),
                                   isCollapsed: true,
                                 ),
                               ),
