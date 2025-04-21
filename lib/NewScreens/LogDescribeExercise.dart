@@ -9,19 +9,22 @@ class LogDescribeExercise extends StatefulWidget {
 
 class _LogDescribeExerciseState extends State<LogDescribeExercise> {
   final TextEditingController _exerciseController = TextEditingController();
+  final TextEditingController _distanceController = TextEditingController();
   final TextEditingController _timeController = TextEditingController();
   
+  String? selectedDistance;
   String? selectedTime;
   bool showIntensity = false;
   double intensityValue = 0.0;
 
+  final List<String> distances = ['1 km', '5 km', '10 km', '15 km'];
   final List<String> times = ['15 min', '30 min', '60 min', '90 min'];
 
   String getIntensityLabel() {
     if (intensityValue <= 0.2) return 'Extremely Light';
     if (intensityValue <= 0.4) return 'Light';
     if (intensityValue <= 0.6) return 'Moderate';
-    if (intensityValue <= 0.8) return 'Vigorous';
+    if (intensityValue <= 0.8) return 'Difficult';
     return 'Maximum Effort';
   }
 
@@ -36,6 +39,7 @@ class _LogDescribeExerciseState extends State<LogDescribeExercise> {
   @override
   void dispose() {
     _exerciseController.dispose();
+    _distanceController.dispose();
     _timeController.dispose();
     super.dispose();
   }
@@ -276,6 +280,96 @@ class _LogDescribeExerciseState extends State<LogDescribeExercise> {
                                   ),
                                 ],
                               ),
+                            )
+                          else
+                            Column(
+                              children: [
+                                // Distance Chips
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: distances.map((distance) {
+                                    return ChoiceChip(
+                                      label: Text(
+                                        distance,
+                                        style: TextStyle(
+                                          color: selectedDistance == distance ? Colors.white : Colors.black,
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                      selected: selectedDistance == distance,
+                                      onSelected: (bool selected) {
+                                        setState(() {
+                                          selectedDistance = selected ? distance : null;
+                                          if (selected) {
+                                            _distanceController.text = distance.replaceAll(' km', '');
+                                          }
+                                        });
+                                      },
+                                      backgroundColor: Colors.white,
+                                      selectedColor: Colors.black,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(20),
+                                        side: BorderSide(
+                                          color: selectedDistance == distance ? Colors.transparent : Colors.grey[300]!,
+                                        ),
+                                      ),
+                                      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                      showCheckmark: false,
+                                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                      visualDensity: VisualDensity.compact,
+                                    );
+                                  }).toList(),
+                                ),
+                                SizedBox(height: 15),
+                                // Distance TextField
+                                Container(
+                                  height: 50,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(25),
+                                    border: Border.all(color: Colors.grey[300]!),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.05),
+                                        blurRadius: 10,
+                                        offset: Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Center(
+                                    child: TextField(
+                                      controller: _distanceController,
+                                      keyboardType: TextInputType.number,
+                                      cursorColor: Colors.black,
+                                      cursorWidth: 1.2,
+                                      textAlign: TextAlign.left,
+                                      textAlignVertical: TextAlignVertical.center,
+                                      style: TextStyle(
+                                        fontSize: 13.6,
+                                        fontWeight: FontWeight.w400,
+                                        color: Colors.black,
+                                        fontFamily: '.SF Pro Display',
+                                      ),
+                                      decoration: InputDecoration(
+                                        hintText: 'Kilometers',
+                                        hintStyle: TextStyle(
+                                          color: Colors.grey,
+                                          fontSize: 13.6,
+                                          fontWeight: FontWeight.w400,
+                                          fontFamily: '.SF Pro Display',
+                                        ),
+                                        border: InputBorder.none,
+                                        enabledBorder: InputBorder.none,
+                                        focusedBorder: InputBorder.none,
+                                        contentPadding: EdgeInsets.symmetric(horizontal: 15),
+                                        isCollapsed: true,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           
                           SizedBox(height: 20),
