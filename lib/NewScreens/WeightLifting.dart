@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'AddRoutine.dart';
+import 'StartWorkout.dart';
 
 class WeightLifting extends StatefulWidget {
   const WeightLifting({Key? key}) : super(key: key);
@@ -111,7 +112,13 @@ class _WeightLiftingState extends State<WeightLifting> {
                             color: Colors.transparent,
                             child: InkWell(
                               onTap: () {
-                                // Handle start workout
+                                debugPrint('Start Workout tapped');
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const StartWorkoutScreen(),
+                                  ),
+                                );
                               },
                               borderRadius: BorderRadius.circular(15),
                               child: Padding(

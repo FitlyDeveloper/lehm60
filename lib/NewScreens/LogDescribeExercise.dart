@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'SaveWorkout.dart';
 
 class LogDescribeExercise extends StatefulWidget {
   const LogDescribeExercise({Key? key}) : super(key: key);
@@ -68,28 +69,51 @@ class _LogDescribeExerciseState extends State<LogDescribeExercise> {
                     child: AppBar(
                       backgroundColor: Colors.transparent,
                       elevation: 0,
-                      leading: IconButton(
-                        icon: Icon(Icons.arrow_back, color: Colors.black),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                      centerTitle: true,
-                      title: Text(
-                        'Describe Exercise',
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'SF Pro Display',
+                      automaticallyImplyLeading: false,
+                      flexibleSpace: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 29)
+                            .copyWith(top: 16, bottom: 8.5),
+                        child: Stack(
+                          children: [
+                            Center(
+                              child: Text(
+                                'Describe Exercise',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  fontFamily: 'SF Pro Display',
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              left: 0,
+                              child: IconButton(
+                                icon: Icon(Icons.arrow_back, color: Colors.black, size: 24),
+                                onPressed: () => Navigator.pop(context),
+                                padding: EdgeInsets.zero,
+                                constraints: BoxConstraints(),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ),
+                  // Divider line
+                  Container(
+                    margin: EdgeInsets.symmetric(horizontal: 29),
+                    height: 0.5,
+                    color: Color(0xFFBDBDBD),
+                  ),
+                  SizedBox(height: 20),
                   Expanded(
                     child: SingleChildScrollView(
-                      padding: EdgeInsets.all(20),
+                      padding: EdgeInsets.symmetric(horizontal: 29),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          SizedBox(height: 20),
                           // Exercise Section
                           Row(
                             children: [
@@ -395,42 +419,44 @@ class _LogDescribeExerciseState extends State<LogDescribeExercise> {
                           ),
                           SizedBox(height: 15),
                           // Time Chips
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: times.map((time) {
-                              return ChoiceChip(
-                                label: Text(
-                                  time,
-                                  style: TextStyle(
-                                    color: selectedTime == time ? Colors.white : Colors.black,
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 13,
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 8),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: times.map((time) {
+                                return ChoiceChip(
+                                  label: Text(
+                                    time,
+                                    style: TextStyle(
+                                      color: selectedTime == time ? Colors.white : Colors.black,
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 13,
+                                    ),
                                   ),
-                                ),
-                                selected: selectedTime == time,
-                                onSelected: (bool selected) {
-                                  setState(() {
-                                    selectedTime = selected ? time : null;
-                                    if (selected) {
-                                      _timeController.text = time.replaceAll(' min', '');
-                                    }
-                                  });
-                                },
-                                backgroundColor: Colors.white,
-                                selectedColor: Colors.black,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                  side: BorderSide(
-                                    color: selectedTime == time ? Colors.transparent : Colors.grey[300]!,
+                                  selected: selectedTime == time,
+                                  onSelected: (bool selected) {
+                                    setState(() {
+                                      selectedTime = selected ? time : null;
+                                      if (selected) {
+                                        _timeController.text = time.replaceAll(' min', '');
+                                      }
+                                    });
+                                  },
+                                  backgroundColor: Colors.white,
+                                  selectedColor: Colors.black,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                    side: BorderSide(
+                                      color: selectedTime == time ? Colors.transparent : Colors.grey[300]!,
+                                    ),
                                   ),
-                                ),
-                                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                showCheckmark: false,
-                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                visualDensity: VisualDensity.compact,
-                              );
-                            }).toList(),
+                                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  showCheckmark: false,
+                                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  visualDensity: VisualDensity.compact,
+                                );
+                              }).toList(),
+                            ),
                           ),
                           SizedBox(height: 15),
                           // Time TextField
@@ -519,14 +545,17 @@ class _LogDescribeExerciseState extends State<LogDescribeExercise> {
                   ),
                   child: TextButton(
                     onPressed: () {
-                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => SaveWorkout()),
+                      );
                     },
                     child: Text(
-                      'Add',
+                      'Save',
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w500,
-                        fontFamily: '.SF Pro Display',
+                        fontFamily: 'SF Pro Display',
                         color: Colors.white,
                       ),
                     ),

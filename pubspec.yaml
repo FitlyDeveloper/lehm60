@@ -19,6 +19,7 @@ dependencies:
   cloud_functions: ^5.4.0
   image_picker: ^1.1.2
   shared_preferences: ^2.5.3
+  dotted_border: ^2.1.0
   # Firebase dependencies are removed for web compatibility
 
 dev_dependencies:

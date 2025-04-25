@@ -1,365 +1,270 @@
 import 'package:flutter/material.dart';
 import 'package:grouped_list/grouped_list.dart';
+import 'package:fitness_app/NewScreens/StartWorkout.dart';
 
-class CodiaPage extends StatefulWidget {
-  CodiaPage({super.key});
+class WeightLifting extends StatefulWidget {
+  const WeightLifting({Key? key}) : super(key: key);
 
   @override
-  State<StatefulWidget> createState() => _CodiaPage();
+  State<WeightLifting> createState() => _WeightLiftingState();
 }
 
-class _CodiaPage extends State<CodiaPage> {
+class _WeightLiftingState extends State<WeightLifting> {
+  bool _isRoutineExpanded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    debugPrint('DEBUG: WeightLifting screen initialized');
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.white,
-      child: SizedBox(
-        height: 852,
-        child: Stack(
-          children: [
-            Positioned(
-              left: -16,
-              right: -16,
-              top: 0,
-              height: 852,
-              child: Image.asset('images/image1_434205.png', height: 852, fit: BoxFit.cover,),
-            ),
-            Positioned(
-              left: 206,
-              width: 150,
-              top: 296,
-              height: 93,
-              child: Container(
-                width: 150,
-                height: 93,
-                decoration: BoxDecoration(
-                  color: const Color(0xffffffff),
-                  borderRadius: BorderRadius.circular(15),
-                  boxShadow: const [BoxShadow(color: const Color(0x14000000), offset: Offset(0, 3), blurRadius: 8),],
+    debugPrint('DEBUG: WeightLifting screen building');
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'Weight Lifting',
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 26,
+            fontWeight: FontWeight.bold,
+            fontFamily: 'SF Pro Display',
+          ),
+        ),
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Quick Start',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                    fontFamily: 'SF Pro Display',
+                  ),
                 ),
-              ),
-            ),
-            Positioned(
-              left: 28,
-              top: 119,
-              child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Quick Start',
-                      textAlign: TextAlign.left,
-                      style: TextStyle(decoration: TextDecoration.none, fontSize: 24, color: const Color(0xff000000), fontFamily: 'SFProDisplay-Bold', fontWeight: FontWeight.normal),
-                      maxLines: 9999,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Positioned(
-              left: 28,
-              top: 237,
-              child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Routines',
-                      textAlign: TextAlign.left,
-                      style: TextStyle(decoration: TextDecoration.none, fontSize: 24, color: const Color(0xff000000), fontFamily: 'SFProDisplay-Bold', fontWeight: FontWeight.normal),
-                      maxLines: 9999,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Positioned(
-              left: 28,
-              width: 338,
-              top: 168,
-              child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Image.asset('images/image2_60392.png', width: 338,),
-              ),
-            ),
-            Positioned(
-              left: 38,
-              width: 318,
-              top: 456,
-              height: 161,
-              child: Container(
-                width: 318,
-                height: 161,
-                decoration: BoxDecoration(
-                  color: const Color(0xffffffff),
-                  borderRadius: BorderRadius.circular(15),
-                  boxShadow: const [BoxShadow(color: const Color(0x14000000), offset: Offset(0, 3), blurRadius: 8),],
-                ),
-              ),
-            ),
-            Positioned(
-              left: 60,
-              width: 21,
-              top: 191,
-              height: 21,
-              child: Stack(
-                children: [
-                  Positioned(
-                    left: -1.355,
-                    width: 24.387,
-                    top: -0.339,
-                    height: 23.032,
-                    child: Container(
-                      width: 24.387,
-                      height: 23.032,
-                      decoration: BoxDecoration(
-                        color: const Color(0xff000000),
+                const SizedBox(height: 15),
+                GestureDetector(
+                  onTap: () {
+                    debugPrint('DEBUG: Start Workout button tapped');
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const StartWorkoutScreen(),
                       ),
+                    );
+                    debugPrint('DEBUG: Navigation completed');
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Row(
+                      children: const [
+                        Icon(Icons.add, color: Colors.black, size: 24),
+                        SizedBox(width: 12),
+                        Text(
+                          'Start Workout',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.black,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
-            ),
-            Positioned(
-              left: 105,
-              top: 183,
-              child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                ),
+                const SizedBox(height: 24),
+                // Routines Section
+                Text(
+                  'Routines',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                    fontFamily: 'SF Pro Display',
+                  ),
+                ),
+                SizedBox(height: 20),
+                // Routines Grid
+                Row(
                   children: [
-                    Text(
-                      'Start Workout',
-                      textAlign: TextAlign.left,
-                      style: TextStyle(decoration: TextDecoration.none, fontSize: 16, color: const Color(0xff000000), fontFamily: 'SFProDisplay-Medium', fontWeight: FontWeight.normal),
-                      maxLines: 9999,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Positioned(
-              left: 49,
-              top: 458,
-              child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Push',
-                      textAlign: TextAlign.left,
-                      style: TextStyle(decoration: TextDecoration.none, fontSize: 18, color: const Color(0xff000000), fontFamily: 'SFProDisplay-Bold', fontWeight: FontWeight.normal),
-                      maxLines: 9999,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Positioned(
-              left: 49,
-              top: 486,
-              child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Bench Press (Barbell), Incline Chest\nPress (Machine), Triceps Pushdown...',
-                      textAlign: TextAlign.left,
-                      style: TextStyle(decoration: TextDecoration.none, fontSize: 16, color: const Color(0x7f000000), fontFamily: 'SFProDisplay-Medium', fontWeight: FontWeight.normal),
-                      maxLines: 9999,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Positioned(
-              left: 38,
-              width: 150,
-              top: 296,
-              height: 93,
-              child: Container(
-                width: 150,
-                height: 93,
-                decoration: BoxDecoration(
-                  color: const Color(0xffffffff),
-                  borderRadius: BorderRadius.circular(15),
-                  boxShadow: const [BoxShadow(color: const Color(0x14000000), offset: Offset(0, 3), blurRadius: 8),],
-                ),
-              ),
-            ),
-            Positioned(
-              left: 88,
-              top: 303,
-              child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Image.asset('images/image3_60395.png',),
-              ),
-            ),
-            Positioned(
-              left: 71,
-              top: 358,
-              child: Text(
-                'Add Routine',
-                textAlign: TextAlign.left,
-                style: TextStyle(decoration: TextDecoration.none, fontSize: 16, color: const Color(0xff000000), fontFamily: 'SFProDisplay-Medium', fontWeight: FontWeight.normal),
-                maxLines: 9999,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            Positioned(
-              left: 213,
-              top: 348,
-              child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Routines For You',
-                      textAlign: TextAlign.left,
-                      style: TextStyle(decoration: TextDecoration.none, fontSize: 16, color: const Color(0xff000000), fontFamily: 'SFProDisplay-Medium', fontWeight: FontWeight.normal),
-                      maxLines: 9999,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Positioned(
-              left: 254,
-              top: 298,
-              child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Image.asset('images/image4_60396.png',),
-              ),
-            ),
-            Positioned(
-              left: 100,
-              top: 58,
-              child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Weight Lifting',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(decoration: TextDecoration.none, fontSize: 26, color: const Color(0xff000000), fontFamily: 'SFProDisplay-Bold', fontWeight: FontWeight.normal),
-                      maxLines: 9999,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Positioned(
-              left: 28,
-              width: 338,
-              top: 99,
-              child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Image.asset('images/image5_60390.png', width: 338,),
-              ),
-            ),
-            Positioned(
-              left: 31.62,
-              width: 33.684,
-              top: 68.5,
-              child: Padding(
-                padding: const EdgeInsets.all(6),
-                child: Image.asset('images/image6_434221.png', width: 33.684,),
-              ),
-            ),
-            Positioned(
-              left: 38,
-              width: 118,
-              top: 409,
-              height: 27,
-              child: Container(
-                width: 118,
-                height: 27,
-                decoration: BoxDecoration(
-                  color: const Color(0xcceeeeee),
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 7, top: 6, right: 7, bottom: 6),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                        width: 85,
-                        height: 15,
-                        child: Text(
-                          'My Routines ( 1 )',
-                          textAlign: TextAlign.left,
-                          style: TextStyle(decoration: TextDecoration.none, fontSize: 12, color: const Color(0xff000000), fontFamily: 'SFProDisplay-Regular', fontWeight: FontWeight.normal),
-                          maxLines: 9999,
-                          overflow: TextOverflow.ellipsis,
+                    Expanded(
+                      child: Container(
+                        height: 93,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(15),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.08),
+                              offset: Offset(0, 3),
+                              blurRadius: 8,
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.add_circle_outline, size: 30),
+                            SizedBox(height: 8),
+                            Text(
+                              'Add Routine',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.black,
+                                fontFamily: 'SF Pro Display',
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(width: 6),
-                      Image.asset('images/image_434225.png', width: 11, height: 11, fit: BoxFit.cover,),
+                    ),
+                    SizedBox(width: 16),
+                    Expanded(
+                      child: Container(
+                        height: 93,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(15),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.08),
+                              offset: Offset(0, 3),
+                              blurRadius: 8,
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.fitness_center, size: 30),
+                            SizedBox(height: 8),
+                            Text(
+                              'Routines For You',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.black,
+                                fontFamily: 'SF Pro Display',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 20),
+                // My Routines Section
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Color(0xFFEEEEEE),
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'My Routines (1)',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.black,
+                          fontFamily: 'SF Pro Display',
+                        ),
+                      ),
+                      SizedBox(width: 6),
+                      Icon(Icons.keyboard_arrow_down, size: 16),
                     ],
                   ),
                 ),
-              ),
-            ),
-            Positioned(
-              left: 52,
-              width: 291,
-              top: 549,
-              child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Image.asset('images/image7_603102.png', width: 291,),
-              ),
-            ),
-            Positioned(
-              left: 136,
-              top: 559,
-              child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Start Routine',
-                      textAlign: TextAlign.left,
-                      style: TextStyle(decoration: TextDecoration.none, fontSize: 17, color: const Color(0xffffffff), fontFamily: 'SFProDisplay-Regular', fontWeight: FontWeight.normal),
-                      maxLines: 9999,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                SizedBox(height: 16),
+                // Routine Card
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(15),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        offset: Offset(0, 3),
+                        blurRadius: 8,
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Push',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                          fontFamily: 'SF Pro Display',
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'Bench Press (Barbell), Incline Chest Press (Machine), Triceps Pushdown...',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.black.withOpacity(0.5),
+                          fontFamily: 'SF Pro Display',
+                        ),
+                      ),
+                      SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            // Start routine logic
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.black,
+                            padding: EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: Text(
+                            'Start Routine',
+                            style: TextStyle(
+                              fontSize: 17,
+                              color: Colors.white,
+                              fontFamily: 'SF Pro Display',
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

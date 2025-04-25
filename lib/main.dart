@@ -12,6 +12,8 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:fitness_app/Features/codia/codia_page.dart';
+import 'package:fitness_app/NewScreens/WeightLifting.dart';
+import 'package:fitness_app/NewScreens/StartWorkout.dart';
 
 // Custom binding to disable overflow errors
 class NoOverflowErrorsFlutterBinding extends WidgetsFlutterBinding {
@@ -177,6 +179,7 @@ class MyApp extends StatelessWidget {
       builder: DevicePreview.appBuilder,
       debugShowCheckedModeBanner: false,
       title: 'Gym App',
+      home: const OnboardingScreen(),
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.black),
         useMaterial3: true,
@@ -226,7 +229,6 @@ class MyApp extends StatelessWidget {
               ),
         ),
       ),
-      home: const OnboardingScreen(),
     );
   }
 }

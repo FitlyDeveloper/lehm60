@@ -64,72 +64,65 @@ class _ChooseWorkoutState extends State<ChooseWorkout> {
                   color: Color(0xFFBDBDBD),
                 ),
 
-                const SizedBox(height: 20),
-
-                // Log Workout section
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 29),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Log Workout',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF303030),
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      left: 29,
+                      right: 29,
+                      bottom: 120, // Increased to prevent overflow
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Weight Lifting Option
+                        _buildWorkoutCard(
+                          'Weight Lifting',
+                          'Build strength with machines or free weights',
+                          'assets/images/dumbbell.png',
+                          () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const WeightLifting(),
+                              ),
+                            );
+                          },
                         ),
-                      ),
-
-                      const SizedBox(height: 16),
-                      
-                      // Weight Lifting Option
-                      _buildWorkoutCard(
-                        'Weight Lifting',
-                        'Build strength with machines or free weights',
-                        'assets/images/dumbbell.png',
-                        () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const WeightLifting(),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      
-                      // Running Option
-                      _buildWorkoutCard(
-                        'Running',
-                        'Track your runs, jogs, sprints etc.',
-                        'assets/images/Shoe.png',
-                        () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const LogRunning(),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      
-                      // More Option
-                      _buildWorkoutCard(
-                        'More',
-                        'Create custom exercises',
-                        'assets/images/add.png',
-                        () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => LogDescribeExercise(),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
+                        const SizedBox(height: 12), // Reduced spacing between cards
+                        
+                        // Running Option
+                        _buildWorkoutCard(
+                          'Running',
+                          'Track your runs, jogs, sprints etc.',
+                          'assets/images/Shoe.png',
+                          () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const LogRunning(),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 12), // Reduced spacing between cards
+                        
+                        // More Option
+                        _buildWorkoutCard(
+                          'More',
+                          'Create custom exercises',
+                          'assets/images/add.png',
+                          () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => LogDescribeExercise(),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -188,7 +181,7 @@ class _ChooseWorkoutState extends State<ChooseWorkout> {
     VoidCallback onTap,
   ) {
     return Container(
-      height: 88,
+      height: 84,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),

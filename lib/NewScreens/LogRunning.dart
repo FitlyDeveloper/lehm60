@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'SaveWorkout.dart';
 
 class LogRunning extends StatefulWidget {
   const LogRunning({Key? key}) : super(key: key);
@@ -55,37 +56,39 @@ class _LogRunningState extends State<LogRunning> {
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 29)
                                 .copyWith(top: 16, bottom: 8.5),
-                            child: Row(
+                            child: Stack(
                               children: [
-                                IconButton(
-                                  icon: Icon(Icons.arrow_back, color: Colors.black),
-                                  onPressed: () => Navigator.pop(context),
-                                ),
-                                Expanded(
-                                  child: Center(
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          'Running',
-                                          style: TextStyle(
-                                            color: Colors.black,
-                                            fontSize: 24,
-                                            fontWeight: FontWeight.bold,
-                                            fontFamily: 'SF Pro Display',
-                                          ),
+                                Center(
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        'Running',
+                                        style: TextStyle(
+                                          color: Colors.black,
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.bold,
+                                          fontFamily: 'SF Pro Display',
                                         ),
-                                        SizedBox(width: 8),
-                                        Image.asset(
-                                          'assets/images/Shoe.png',
-                                          width: 24,
-                                          height: 24,
-                                        ),
-                                      ],
-                                    ),
+                                      ),
+                                      SizedBox(width: 8),
+                                      Image.asset(
+                                        'assets/images/Shoe.png',
+                                        width: 24,
+                                        height: 24,
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                SizedBox(width: 48),
+                                Positioned(
+                                  left: 0,
+                                  child: IconButton(
+                                    icon: Icon(Icons.arrow_back, color: Colors.black, size: 24),
+                                    onPressed: () => Navigator.pop(context),
+                                    padding: EdgeInsets.zero,
+                                    constraints: BoxConstraints(),
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -367,14 +370,17 @@ class _LogRunningState extends State<LogRunning> {
                   ),
                   child: TextButton(
                     onPressed: () {
-                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => SaveWorkout()),
+                      );
                     },
                     child: const Text(
-                      'Add',
+                      'Save',
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w500,
-                        fontFamily: '.SF Pro Display',
+                        fontFamily: 'SF Pro Display',
                         color: Colors.white,
                       ),
                     ),
