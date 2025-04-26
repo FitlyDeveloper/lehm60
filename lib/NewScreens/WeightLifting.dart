@@ -38,28 +38,30 @@ class _WeightLiftingState extends State<WeightLifting> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 29)
-                        .copyWith(top: 16, bottom: 8.5),
-                    child: Row(
+                    padding: EdgeInsets.symmetric(horizontal: 29).copyWith(top: 16, bottom: 8.5),
+                    child: Stack(
                       children: [
-                        IconButton(
-                          icon: Icon(Icons.arrow_back, color: Colors.black),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                        Expanded(
-                          child: Center(
-                            child: Text(
-                              'Weight Lifting',
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                fontFamily: 'SF Pro Display',
-                              ),
+                        Center(
+                          child: Text(
+                            'Weight Lifting',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'SF Pro Display',
                             ),
                           ),
                         ),
-                        SizedBox(width: 48),
+                        Positioned(
+                          left: 0,
+                          top: 0,
+                          child: IconButton(
+                            icon: Icon(Icons.arrow_back, color: Colors.black, size: 24),
+                            onPressed: () => Navigator.pop(context),
+                            padding: EdgeInsets.zero,
+                            constraints: BoxConstraints(),
+                          ),
+                        ),
                       ],
                     ),
                   ),

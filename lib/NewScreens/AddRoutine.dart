@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fitness_app/NewScreens/AddExercise.dart';
 
 class AddRoutine extends StatefulWidget {
   const AddRoutine({Key? key}) : super(key: key);
@@ -36,23 +37,40 @@ class _AddRoutineState extends State<AddRoutine> {
             child: AppBar(
               backgroundColor: Colors.transparent,
               elevation: 0,
-              leading: Padding(
-                padding: EdgeInsets.only(left: 5),
-                child: IconButton(
-                  icon: Icon(Icons.arrow_back, color: Colors.black),
-                  onPressed: () => Navigator.pop(context),
-                ),
+              automaticallyImplyLeading: false,
+              flexibleSpace: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 29).copyWith(top: 16, bottom: 8.5),
+                    child: Stack(
+                      children: [
+                        Center(
+                          child: Text(
+                            'Add Routine',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'SF Pro Display',
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          left: 0,
+                          top: 0,
+                          child: IconButton(
+                            icon: Icon(Icons.arrow_back, color: Colors.black, size: 24),
+                            onPressed: () => Navigator.pop(context),
+                            padding: EdgeInsets.zero,
+                            constraints: BoxConstraints(),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              title: Text(
-                'Add Routine',
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'SF Pro Display',
-                ),
-              ),
-              centerTitle: true,
             ),
           ),
           body: Column(
@@ -130,7 +148,12 @@ class _AddRoutineState extends State<AddRoutine> {
                             height: 48,
                             child: ElevatedButton(
                               onPressed: () {
-                                // Handle add exercise
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => CodiaPage(),
+                                  ),
+                                );
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.black,
