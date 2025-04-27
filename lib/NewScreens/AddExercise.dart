@@ -175,7 +175,7 @@ class _CodiaPage extends State<CodiaPage> {
                       ),
                       child: Center(
                         child: Text(
-                          'All Equipment',
+                          'Favourites',
                           style: TextStyle(
                             decoration: TextDecoration.none,
                             fontSize: 17,
@@ -328,43 +328,54 @@ class _CodiaPage extends State<CodiaPage> {
                 },
               ),
             ),
-            if (_selectedIndex != null)
+            if (_selectedIndex != null) ...[
               Positioned(
                 left: 0,
                 right: 0,
                 bottom: 0,
+                height: MediaQuery.of(context).size.height * 0.148887,
                 child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-                  color: Colors.transparent,
-                  child: Container(
-                    width: double.infinity,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: Colors.black,
-                      borderRadius: BorderRadius.circular(18),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
-                          blurRadius: 16,
-                          offset: Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: Center(
-                      child: Text(
-                        'Add 1 exercise',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'SF Pro Display',
-                          letterSpacing: 0.2,
-                        ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.zero,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: Offset(0, -5),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 24,
+                right: 24,
+                bottom: MediaQuery.of(context).size.height * 0.06,
+                child: Container(
+                  width: double.infinity,
+                  height: MediaQuery.of(context).size.height * 0.0689,
+                  decoration: BoxDecoration(
+                    color: Colors.black,
+                    borderRadius: BorderRadius.circular(28),
+                  ),
+                  child: TextButton(
+                    onPressed: () {
+                      // your add logic
+                    },
+                    child: const Text(
+                      'Add 1 exercise',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w500,
+                        fontFamily: 'SF Pro Display',
+                        color: Colors.white,
                       ),
                     ),
                   ),
                 ),
               ),
+            ],
           ],
         ),
       ),
